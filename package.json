@@ -1,0 +1,25 @@
+{
+  "name": "sidebar-for-class",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --disable-gpu --enable-logging",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PANDAJSR/sidebar-for-class.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/PANDAJSR/sidebar-for-class/issues"
+  },
+  "homepage": "https://github.com/PANDAJSR/sidebar-for-class#readme",
+  "devDependencies": {
+    "electron": "^39.2.7"
+  }
+}
