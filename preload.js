@@ -21,5 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFileIcon: (path) => ipcRenderer.invoke('get-file-icon', path),
 
     // 设置窗口置顶状态
-    setAlwaysOnTop: (flag) => ipcRenderer.send('set-always-on-top', flag)
+    setAlwaysOnTop: (flag) => ipcRenderer.send('set-always-on-top', flag),
+
+    // 音量控制
+    getVolume: () => ipcRenderer.invoke('get-volume'),
+    setVolume: (value) => ipcRenderer.send('set-volume', value)
 });

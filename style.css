@@ -140,22 +140,60 @@ p {
 /* 启动器分组样式 */
 .launcher-group {
     display: flex;
+    gap: 8px;
+}
+
+.launcher-group.layout-vertical {
     flex-direction: column;
     gap: 4px;
-    /* 内部 targets 之间的间隙更小 */
+}
+
+.launcher-group.layout-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.launcher-group.layout-grid_no_text {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 /* 启动器项目样式 */
 .launcher-item {
     display: flex;
     align-items: center;
-    padding: 8px 14px;
-    /* 减小上下垂直内边距 (原本是 10px) */
     background: rgba(243, 244, 246, 0.5);
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+}
+
+.layout-vertical .launcher-item {
+    padding: 8px 14px;
+    flex-direction: row;
+}
+
+.layout-grid .launcher-item {
+    flex: 1 1 30%;
+    /* 确保每行最多3个，不足3个时平分宽度 */
+    min-width: 0;
+    padding: 8px 4px;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+}
+
+.layout-grid_no_text .launcher-item {
+    flex: 1 1 21%;
+    /* 确保每行最多4个，不足4个时平分宽度 */
+    min-width: 0;
+    padding: 8px;
+    justify-content: center;
 }
 
 /* 启动器项目悬停效果 */
@@ -174,11 +212,23 @@ p {
     width: 32px;
     height: 32px;
     border-radius: 6px;
-    margin-right: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    flex-shrink: 0;
+}
+
+.layout-vertical .launcher-icon {
+    margin-right: 12px;
+}
+
+.layout-grid .launcher-icon {
+    margin-right: 0;
+}
+
+.layout-grid_no_text .launcher-icon {
+    margin-right: 0;
 }
 
 /* 图标图片自适应 */
@@ -193,9 +243,128 @@ p {
     flex: 1;
 }
 
+.layout-grid_no_text .launcher-info {
+    display: none;
+    /* 无文字布局隐藏信息栏 */
+}
+
 /* 启动器名称样式 */
 .launcher-name {
     font-weight: 600;
-    font-size: 15px;
+    font-size: 12px;
+    /* 网格模式下文字更小 */
     color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.layout-vertical .launcher-name {
+    font-size: 15px;
+}
+
+/* 音量滑块样式 */
+.volume-slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 18px;
+    background: rgba(243, 244, 246, 0.5);
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin-top: 8px;
+    transition: all 0.2s ease;
+}
+
+.volume-slider-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4b5563;
+    margin-bottom: 2px;
+    opacity: 0.8;
+}
+
+.volume-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.volume-slider-container:hover {
+    background: rgba(243, 244, 246, 0.8);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.volume-icon {
+    display: flex;
+    align-items: center;
+    color: #4b5563;
+    transition: color 0.2s ease;
+}
+
+.volume-slider-container:hover .volume-icon {
+    color: #3b82f6;
+}
+
+.slider-wrapper {
+    flex: 1;
+    position: relative;
+    height: 24px;
+    display: flex;
+    align-items: center;
+}
+
+.volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    outline: none;
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background: #2563eb;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.slider-fill {
+    position: absolute;
+    left: 0;
+    top: 9px;
+    height: 6px;
+    background: #3b82f6;
+    border-radius: 3px;
+    z-index: 1;
+    pointer-events: none;
+    transition: background 0.2s ease;
+}
+
+.volume-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+    min-width: 45px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -39,6 +39,39 @@ function getConfigSync() {
 }
 
 let config = getConfigSync();
+
+/**
+ * 从 URI 协议中解析出关联的可执行文件路径
+ * @param {string} protocol 协议名，例如 'classisland'
+ */
+function getExePathFromProtocol(protocol) {
+  try {
+    const { execSync } = require('child_process');
+    const regPath = `HKEY_CLASSES_ROOT\\${protocol}\\shell\\open\\command`;
+    const output = execSync(`reg query "${regPath}" /ve`, { encoding: 'utf8' });
+
+    // 使用正则表达式匹配 REG_SZ 后的内容
+    const match = output.match(/\s+REG_SZ\s+(.*)/);
+    if (match) {
+      let command = match[1].trim();
+      let exePath = '';
+      if (command.startsWith('"')) {
+        const endQuoteIndex = command.indexOf('"', 1);
+        if (endQuoteIndex !== -1) {
+          exePath = command.substring(1, endQuoteIndex);
+        }
+      } else {
+        exePath = command.split(' ')[0];
+      }
+      if (exePath && fs.existsSync(exePath)) {
+        return exePath;
+      }
+    }
+  } catch (e) {
+    console.error(`查询协议 ${protocol} 失败:`, e.message);
+  }
+  return null;
+}
 
 /**
  * 创建主窗口
@@ -209,6 +242,15 @@ ipcMain.handle('get-config', async () => {
  */
 ipcMain.on('launch-app', (event, target, args) => {
   console.log(`正在启动应用: ${target}，参数: ${args}`);
+
+  // 检查是否为 URI 格式 (例如 classisland://)
+  if (target.includes('://')) {
+    shell.openExternal(target).catch(err => {
+      console.error('打开 URI 失败:', err);
+    });
+    return;
+  }
+
   spawn(target, args, {
     detached: true,
     stdio: 'ignore'
@@ -222,8 +264,17 @@ ipcMain.handle('get-file-icon', async (event, filePath) => {
   try {
     let resolvedPath = filePath;
 
-    // 如果不是绝对路径，尝试定位文件位置
-    if (!path.isAbsolute(filePath)) {
+    // 如果是 URI 格式 (例如 classisland://app/test)
+    if (filePath.includes('://')) {
+      const protocol = filePath.split('://')[0];
+      resolvedPath = getExePathFromProtocol(protocol);
+
+      if (!resolvedPath) {
+        console.warn(`无法为协议 ${protocol} 定位可执行文件`);
+        return null;
+      }
+      console.log(`[图标] 通过协议 ${protocol} 定位到: ${resolvedPath}`);
+    } else if (!path.isAbsolute(filePath)) {
       try {
         const { execSync } = require('child_process');
         // 使用 Windows 'where' 命令查找完整路径
@@ -248,12 +299,113 @@ ipcMain.handle('get-file-icon', async (event, filePath) => {
     }
 
     console.log(`图标解析路径: ${resolvedPath}`);
-    const icon = await app.getFileIcon(resolvedPath, { size: 'normal' });
+    const icon = await app.getFileIcon(resolvedPath, { size: 'large' });
     return icon.toDataURL();
   } catch (err) {
     console.error(`读取图标失败 (${filePath}):`, err);
     return null;
   }
+});
+
+/**
+ * 获取系统音量
+ */
+/**
+ * 获取系统音量
+ */
+ipcMain.handle('get-volume', async () => {
+  return new Promise((resolve) => {
+    const script = `
+      $code = @'
+      using System;
+      using System.Runtime.InteropServices;
+      [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+      public interface IAudioEndpointVolume {
+          int SetMasterVolumeLevelScalar(float fLevel, ref Guid pguidEventContext);
+          int GetMasterVolumeLevelScalar(out float pfLevel);
+      }
+      [Guid("D6660639-824D-4AC8-B9CD-491F02F16260"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+      public interface IMMDevice {
+          int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+      }
+      [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+      public interface IMMDeviceEnumerator {
+          int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppDevice);
+      }
+      [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] public class MMDeviceEnumerator { }
+      public class AudioHelper {
+          public static float GetVolume() {
+              IMMDeviceEnumerator enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+              IMMDevice device;
+              enumerator.GetDefaultAudioEndpoint(0, 0, out device);
+              object interfaceObj;
+              Guid iid = new Guid("5CDF2C82-841E-4546-9722-0CF74078229A");
+              device.Activate(ref iid, 7, IntPtr.Zero, out interfaceObj);
+              IAudioEndpointVolume vol = (IAudioEndpointVolume)interfaceObj;
+              float v;
+              vol.GetMasterVolumeLevelScalar(out v);
+              return v;
+          }
+      }
+'@
+      Add-Type -TypeDefinition $code
+      [Math]::Round([AudioHelper]::GetVolume() * 100)
+    `;
+    const ps = spawn('powershell.exe', ['-NoProfile', '-Command', script]);
+    let output = '';
+    ps.stdout.on('data', (data) => { output += data.toString(); });
+    ps.on('close', () => {
+      resolve(parseInt(output.trim()) || 0);
+    });
+    ps.on('error', (err) => {
+      resolve(0);
+    });
+    setTimeout(() => { if (!ps.killed) ps.kill(); resolve(0); }, 3000);
+  });
+});
+
+/**
+ * 设置系统音量
+ * @param {number} value 音量值 (0-100)
+ */
+ipcMain.on('set-volume', (event, value) => {
+  const volume = value / 100;
+  const script = `
+    $code = @'
+    using System;
+    using System.Runtime.InteropServices;
+    [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IAudioEndpointVolume {
+        int SetMasterVolumeLevelScalar(float fLevel, ref Guid pguidEventContext);
+        int GetMasterVolumeLevelScalar(out float pfLevel);
+    }
+    [Guid("D6660639-824D-4AC8-B9CD-491F02F16260"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IMMDevice {
+        int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+    }
+    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IMMDeviceEnumerator {
+        int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppDevice);
+    }
+    [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] public class MMDeviceEnumerator { }
+    public class AudioHelper {
+        public static void SetVolume(float level) {
+            IMMDeviceEnumerator enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+            IMMDevice device;
+            enumerator.GetDefaultAudioEndpoint(0, 0, out device);
+            object interfaceObj;
+            Guid iid = new Guid("5CDF2C82-841E-4546-9722-0CF74078229A");
+            device.Activate(ref iid, 7, IntPtr.Zero, out interfaceObj);
+            IAudioEndpointVolume vol = (IAudioEndpointVolume)interfaceObj;
+            Guid g = Guid.Empty;
+            vol.SetMasterVolumeLevelScalar(level, ref g);
+        }
+    }
+'@
+    Add-Type -TypeDefinition $code
+    [AudioHelper]::SetVolume(${volume})
+  `;
+  spawn('powershell.exe', ['-NoProfile', '-Command', script]);
 });
 
 // Electron 应用生命周期管理

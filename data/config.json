@@ -3,7 +3,7 @@
         "display": 2,
         "height": 64,
         "posy": 350,
-        "animation_speed": 0.1
+        "animation_speed": 1
     },
     "widgets": [
         {
@@ -19,7 +19,28 @@
                     "target": "notepad.exe",
                     "args": []
                 }
-            ]
+            ],
+            "layout": "grid_no_text"
+        },
+        {
+            "type": "launcher",
+            "targets": [
+                {
+                    "name": "CI_test",
+                    "target": "classisland://app/test",
+                    "args": []
+                },
+                {
+                    "name": "CI换课",
+                    "target": "classisland://app/class-swap",
+                    "args": []
+                }
+            ],
+            "layout": "grid"
+        },
+        {
+            "type": "volume_slider",
+            "range": [0, 100]
         }
     ]
 }
