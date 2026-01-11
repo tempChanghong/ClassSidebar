@@ -1,6 +1,6 @@
 {
     "transforms": {
-        "display": 1,
+        "display": 0,
         "height": 64,
         "posy": 350,
         "animation_speed": 1
@@ -34,6 +34,11 @@
                     "name": "CI换课",
                     "target": "classisland://app/class-swap",
                     "args": []
+                },
+                {
+                    "name": "SecRandom随机点名",
+                    "target": "secrandom://pumping",
+                    "args": []
                 }
             ],
             "layout": "grid"
@@ -41,6 +46,10 @@
         {
             "type": "volume_slider",
             "range": [0, 100]
+        },
+        {
+            "type": "drag_to_launch",
+            "targets": "C:\\Program Files\\LocalSend\\localsend_app.exe {{source}}"
         }
     ]
 }

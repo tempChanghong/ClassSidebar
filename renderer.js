@@ -381,4 +381,56 @@ window.addEventListener('mousedown', (e) => { if (document.body.classList.contai
 // 窗口失去焦点时收起
 window.addEventListener('blur', () => { if (document.body.classList.contains('expanded')) collapse(); });
 
+// 拖拽相关定时器
+let dragLeaveTimer = null;
+
+// 监听外部拖拽进入（如拖动文件），自动展开侧边栏
+window.addEventListener('dragenter', (e) => {
+    // 进入时清除收起定时器
+    if (dragLeaveTimer) {
+        clearTimeout(dragLeaveTimer);
+        dragLeaveTimer = null;
+    }
+
+    if (isDragging || document.body.classList.contains('expanded')) return;
+    // 检查是否有拖拽数据
+    if (e.dataTransfer && e.dataTransfer.types.length > 0) {
+        expand();
+    }
+});
+
+// 拖拽悬停时阻止默认行为并确保鼠标不穿透
+window.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    setIgnoreMouse(false);
+
+    // 持续悬停时清除收起定时器
+    if (dragLeaveTimer) {
+        clearTimeout(dragLeaveTimer);
+        dragLeaveTimer = null;
+    }
+});
+
+// 拖拽离开时延迟收起
+window.addEventListener('dragleave', (e) => {
+    // 延迟收起，防止鼠标在子元素间移动时误触发收起
+    if (dragLeaveTimer) clearTimeout(dragLeaveTimer);
+    dragLeaveTimer = setTimeout(() => {
+        // 如果侧边栏是展开状态且没有在进行内部拖拽，则收起
+        // 注意：这里我们假设如果是外部拖拽离开，就应该收起
+        if (document.body.classList.contains('expanded') && !isDragging) {
+            collapse();
+        }
+    }, 150); // 150ms 延迟足够处理子元素切换
+});
+
+// 拖放结束（放下）时收起
+window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (dragLeaveTimer) clearTimeout(dragLeaveTimer);
+    // 这里未来可以处理文件放置逻辑
+    // 目前先统一收起，恢复初始状态
+    collapse();
+});
+
 loadConfig();
