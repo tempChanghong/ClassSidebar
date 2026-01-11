@@ -440,4 +440,14 @@ window.addEventListener('drop', (e) => {
     window.electronAPI.setAlwaysOnTop(true);
 });
 
+// 设置按钮点击事件
+const settingsBtn = document.getElementById('settings-btn');
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 防止触发侧边栏拖拽
+        window.electronAPI.openSettings();
+    });
+}
+
 loadConfig();
+

@@ -5,6 +5,8 @@ const fs = require('fs');
 const { getExePathFromProtocol, getSystemVolume, setSystemVolume } = require('./main-utils');
 
 let mainWindow;
+let settingsWindow = null; // 设置窗口
+
 
 function getIsAdmin() {
   try {
@@ -214,6 +216,50 @@ ipcMain.handle('get-files-in-folder', async (event, folderPath, maxCount) => {
     return [];
   }
 });
+
+// 创建设置窗口
+function createSettingsWindow() {
+  // 如果设置窗口已经存在，则聚焦它
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    title: '设置',
+    frame: true,
+    transparent: false,
+    alwaysOnTop: false,
+    skipTaskbar: false,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    }
+  });
+
+  // 加载设置页面（暂时先加载一个简单的HTML）
+  settingsWindow.loadFile('settings.html');
+
+  // 窗口关闭时清理引用
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+
+  // 开发时可以打开开发者工具
+  // settingsWindow.webContents.openDevTools();
+}
+
+// 监听打开设置窗口的请求
+ipcMain.on('open-settings', () => {
+  createSettingsWindow();
+});
+
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

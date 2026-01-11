@@ -40,5 +40,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
             return webUtils.getPathForFile(file);
         }
         return file.path;
-    }
+    },
+
+    // 打开设置窗口
+    openSettings: () => ipcRenderer.send('open-settings')
 });
+

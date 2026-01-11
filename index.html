@@ -7,6 +7,8 @@
     <title>侧边栏工具</title>
     <!-- 引入外部样式表 -->
     <link rel="stylesheet" href="style.css">
+    <!-- 引入 Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body>
@@ -17,6 +19,10 @@
             <div id="sidebar">
                 <!-- 内容容器 -->
                 <div id="content">
+                    <!-- 设置按钮 -->
+                    <button id="settings-btn" class="settings-button" title="设置">
+                        <i class="fas fa-cog"></i>
+                    </button>
                     <!-- 小组件容器：动态注入按钮或工具 -->
                     <div id="widget-container" class="widget-list">
                         <!-- 组件将通过 JS 动态注入此处 -->
