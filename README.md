@@ -1,4 +1,4 @@
-# Sidebar for Class
+# ClassSidebar
 
 这是一个基于 Electron 开发的侧边栏应用程序，旨在提供快捷的应用程序启动和系统控制等功能。
 
