@@ -57,6 +57,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return file.path;
     },
 
+    // 获取应用版本
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+    // 获取开机自启设置
+    getLoginItemSettings: () => ipcRenderer.invoke('get-login-item-settings'),
+
+    // 设置开机自启
+    setLoginItemSettings: (settings) => ipcRenderer.invoke('set-login-item-settings', settings),
+
     // 打开设置窗口
     openSettings: () => ipcRenderer.send('open-settings')
 });

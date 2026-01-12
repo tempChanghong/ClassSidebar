@@ -1,17 +1,13 @@
 {
   "transforms": {
     "display": 0,
-    "height": 64,
     "posy": 350,
-    "animation_speed": 1
+    "height": 64,
+    "width": 400,
+    "animation_speed": 1,
+    "opacity": 0.95
   },
   "widgets": [
-    {
-      "type": "drag_to_launch",
-      "name": "发送到 LocalSend",
-      "targets": "C:\\Program Files\\LocalSend\\localsend_app.exe {{source}}",
-      "show_all_time": false
-    },
     {
       "type": "launcher",
       "targets": [
@@ -65,16 +61,26 @@
       "layout": "grid",
       "targets": [
         {
+          "name": "ClassIsland",
+          "target": "classisland://"
+        }
+      ]
+    },
+    {
+      "type": "launcher",
+      "layout": "grid",
+      "targets": [
+        {
           "name": "任务管理器",
-          "target": "taskmgr"
+          "target": "taskmgr.exe"
         },
         {
           "name": "控制面板",
-          "target": "control"
+          "target": "control.exe"
         },
         {
           "name": "计算器",
-          "target": "calc"
+          "target": "calc.exe"
         }
       ]
     }

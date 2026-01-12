@@ -6,14 +6,38 @@ async function createLauncherItem(widget, widgetIndex, itemIndex) {
     div.className = 'launcher-item';
 
     let iconHtml = '<div class="launcher-icon-placeholder" style="width:32px; height:32px; background:#e5e7eb; border-radius:6px;"></div>';
-    if (widget.target) {
+    
+    // 优先使用配置中指定的图标
+    if (widget.icon) {
+        // 如果是 Font Awesome 图标类名
+        if (widget.icon.startsWith('fa-') || widget.icon.startsWith('fas ') || widget.icon.startsWith('fab ')) {
+            iconHtml = `<i class="${widget.icon}" style="font-size: 24px; color: #555;"></i>`;
+        } else {
+            // 否则假定为图片路径
+            iconHtml = `<img src="${widget.icon}" alt="${widget.name}">`;
+        }
+    } else if (widget.target) {
+        // 尝试从系统获取图标
         try {
             const iconDataUrl = await window.electronAPI.getFileIcon(widget.target);
             if (iconDataUrl) {
                 iconHtml = `<img src="${iconDataUrl}" alt="${widget.name}">`;
+            } else {
+                // 如果获取失败，尝试根据协议提供内置默认图标
+                if (widget.target.startsWith('classisland://')) {
+                    iconHtml = `<img src="icons/ci.png" alt="${widget.name}">`;
+                } else if (widget.target.startsWith('secrandom://')) {
+                    iconHtml = `<img src="icons/secrandom.png" alt="${widget.name}">`;
+                }
             }
         } catch (err) {
             console.error('获取图标失败:', err);
+            // 出错时的兜底
+            if (widget.target.startsWith('classisland://')) {
+                iconHtml = `<img src="icons/ci.png" alt="${widget.name}">`;
+            } else if (widget.target.startsWith('secrandom://')) {
+                iconHtml = `<img src="icons/secrandom.png" alt="${widget.name}">`;
+            }
         }
     }
 

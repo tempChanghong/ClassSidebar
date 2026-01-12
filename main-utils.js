@@ -25,8 +25,31 @@ function getExePathFromProtocol(protocol) {
                 const endQuoteIndex = command.indexOf('"', 1);
                 if (endQuoteIndex !== -1) exePath = command.substring(1, endQuoteIndex);
             } else {
-                // 处理不带引号的路径
-                exePath = command.split(' ')[0];
+                // 处理不带引号的路径，尝试解决空格问题
+                const parts = command.split(' ');
+                let currentPath = parts[0];
+                // 尝试逐步拼接路径，直到找到存在的文件
+                // 或者是拼接到最后
+                let found = false;
+                
+                if (fs.existsSync(currentPath) && fs.statSync(currentPath).isFile()) {
+                    exePath = currentPath;
+                    found = true;
+                } else {
+                    for (let i = 1; i < parts.length; i++) {
+                        currentPath += ' ' + parts[i];
+                        if (fs.existsSync(currentPath) && fs.statSync(currentPath).isFile()) {
+                            exePath = currentPath;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!found) {
+                    // 如果没找到文件，回退到第一个空格分割（虽然可能不对，但作为保底）
+                    exePath = command.split(' ')[0];
+                }
             }
             // 验证文件是否存在
             if (exePath && fs.existsSync(exePath)) return exePath;

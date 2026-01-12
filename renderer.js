@@ -63,7 +63,8 @@ window.addEventListener('mouseleave', () => setIgnoreMouse(true));
 
 // 侧边栏尺寸和目标尺寸常量
 let START_W = 4, START_H = 64;
-const TARGET_W = 400, TARGET_H = 450;
+let TARGET_W = 400; // 默认值，可配置
+const TARGET_H = 450;
 
 /**
  * 停止当前进行的动画
@@ -95,6 +96,16 @@ function applyConfig(config) {
             // 根据速度配置调整 CSS 变量
             document.documentElement.style.setProperty('--sidebar-duration', `${0.5 / speed}s`);
             document.documentElement.style.setProperty('--content-duration', `${0.3 / speed}s`);
+        }
+        // 应用宽度配置
+        if (typeof config.transforms.width === 'number') {
+            TARGET_W = config.transforms.width;
+        }
+        // 应用透明度配置
+        if (typeof config.transforms.opacity === 'number') {
+            document.documentElement.style.setProperty('--sidebar-opacity', config.transforms.opacity);
+        } else {
+            document.documentElement.style.setProperty('--sidebar-opacity', '0.95');
         }
     }
     // 渲染小部件
@@ -165,8 +176,12 @@ function updateSidebarStyles(progress) {
     }
 
     // 根据进度调整背景颜色透明度
+    // 使用 CSS 变量控制的基础透明度
+    const baseOpacity = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-opacity')) || 0.95;
     const gray = Math.floor(156 + (255 - 156) * progress);
-    sidebar.style.background = `rgba(${gray}, ${gray}, ${gray}, ${0.8 + 0.15 * progress})`;
+    // 收起时透明度稍低，展开时使用配置的透明度
+    const currentOpacity = 0.8 + (baseOpacity - 0.8) * progress;
+    sidebar.style.background = `rgba(${gray}, ${gray}, ${gray}, ${currentOpacity})`;
 }
 
 let lastResizeTime = 0;
@@ -466,24 +481,8 @@ window.addEventListener('dragleave', (e) => {
 window.addEventListener('drop', (e) => {
     e.preventDefault();
     if (dragLeaveTimer) clearTimeout(dragLeaveTimer);
-
-    // 检查是否已经被其他组件处理（例如 drag-to-launch）
-    if (window._dragHandled) {
-        window._dragHandled = false; // 重置标记
-    } else {
-        // 如果未被处理，且有文件，则尝试添加快捷方式
-        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-            for (const file of e.dataTransfer.files) {
-                const filePath = window.electronAPI.getFilePath(file);
-                if (filePath) {
-                    console.log('Adding shortcut for:', filePath);
-                    window.electronAPI.addShortcut(filePath);
-                }
-            }
-        }
-    }
-
-    // 统一收起，恢复初始状态
+    // 这里未来可以处理文件放置逻辑
+    // 目前先统一收起，恢复初始状态
     collapse();
     // 恢复置顶
     window.electronAPI.setAlwaysOnTop(true);

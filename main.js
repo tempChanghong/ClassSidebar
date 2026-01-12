@@ -27,20 +27,7 @@ function getConfigSync() {
       console.error('解析配置文件失败:', e);
     }
   }
-  // 默认配置：只保留基础组件，移除特定应用
-  return { 
-      widgets: [
-          {
-              type: "launcher",
-              layout: "grid",
-              targets: [] // 默认为空，让用户自己添加
-          },
-          {
-              type: "volume_slider"
-          }
-      ], 
-      transforms: { display: 0, height: 64, posy: 0 } 
-  };
+  return { widgets: [], transforms: { display: 0, height: 64, posy: 0 } };
 }
 
 let config = getConfigSync();
@@ -48,11 +35,6 @@ let config = getConfigSync();
 function saveConfig(newConfig) {
   try {
     const configPath = path.join(__dirname, 'data', 'config.json');
-    // 确保存储目录存在
-    const dir = path.dirname(configPath);
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8');
     config = newConfig; // 更新内存中的配置
     // 通知主窗口配置已更新
@@ -80,8 +62,11 @@ function createWindow() {
   if (yPos < screenY) yPos = screenY;
   else if (yPos + initialHeight > screenY + screenHeight) yPos = screenY + screenHeight - initialHeight;
 
+  // 恢复初始宽度为较小值，完全依赖 resize 来控制交互区域
+  const initialWidth = 50;
+
   mainWindow = new BrowserWindow({
-    width: 20, height: initialHeight, x: screenX, y: yPos,
+    width: initialWidth, height: initialHeight, x: screenX, y: yPos,
     frame: false, transparent: true, alwaysOnTop: true,
     skipTaskbar: true, movable: false, resizable: false, hasShadow: false,
     type: 'toolbar',
@@ -110,7 +95,7 @@ function createWindow() {
   mainWindow.loadFile('index.html');
   
   // 保持 DevTools 开启以便调试
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // mainWindow.webContents.openDevTools({ mode: 'detach' });
   
   mainWindow.on('ready-to-show', () => mainWindow.show());
   mainWindow.on('blur', () => {
@@ -149,7 +134,11 @@ ipcMain.on('resize-window', (event, width, height, y) => {
 });
 
 ipcMain.on('set-ignore-mouse', (event, ignore, forward) => {
-  if (mainWindow) mainWindow.setIgnoreMouseEvents(ignore, { forward: !!forward });
+  if (mainWindow) {
+      if (!ignore) {
+          mainWindow.setIgnoreMouseEvents(false);
+      }
+  }
 });
 
 ipcMain.handle('get-config', async () => {
@@ -165,6 +154,20 @@ ipcMain.handle('save-config', async (event, newConfig) => {
   } else {
       return { success: false, error: 'Failed to save config' };
   }
+});
+
+// 获取应用版本
+ipcMain.handle('get-app-version', () => app.getVersion());
+
+// 获取开机自启状态
+ipcMain.handle('get-login-item-settings', () => {
+  return app.getLoginItemSettings();
+});
+
+// 设置开机自启
+ipcMain.handle('set-login-item-settings', (event, settings) => {
+  app.setLoginItemSettings(settings);
+  return app.getLoginItemSettings();
 });
 
 // 打开文件选择对话框
@@ -214,6 +217,36 @@ ipcMain.on('show-context-menu', (event, itemData) => {
     if (itemData && typeof itemData.widgetIndex === 'number' && typeof itemData.itemIndex === 'number') {
         const { widgetIndex, itemIndex, target } = itemData;
         
+        // --- 内置组件子功能 ---
+        if (target) {
+            const lowerTarget = target.toLowerCase();
+            
+            // ClassIsland 扩展功能
+            if (lowerTarget.includes('classisland')) {
+                menu.append(new MenuItem({
+                    label: 'CI 换课',
+                    click: () => {
+                        shell.openExternal('classisland://app/class-swap')
+                            .catch(e => console.error('启动 CI 换课失败:', e));
+                    }
+                }));
+                menu.append(new MenuItem({ type: 'separator' }));
+            }
+            
+            // SecRandom 扩展功能
+            if (lowerTarget.includes('secrandom')) {
+                menu.append(new MenuItem({
+                    label: '随机点名',
+                    click: () => {
+                        shell.openExternal('secrandom://pumping')
+                            .catch(e => console.error('启动随机点名失败:', e));
+                    }
+                }));
+                menu.append(new MenuItem({ type: 'separator' }));
+            }
+        }
+        // --------------------
+
         menu.append(new MenuItem({
             label: '打开所在位置',
             click: () => {
@@ -303,19 +336,91 @@ ipcMain.on('launch-app', async (event, target, args) => {
 ipcMain.handle('get-file-icon', async (event, filePath) => {
   try {
     let resolvedPath = filePath;
+
+    // 优先处理协议
     if (filePath.includes('://')) {
       const protocol = filePath.split('://')[0];
       resolvedPath = getExePathFromProtocol(protocol);
-      if (!resolvedPath) return null;
-    } else if (!path.isAbsolute(filePath)) {
-      try {
-        const output = execSync(`where ${filePath}`, { encoding: 'utf8' });
-        resolvedPath = output.split('\r\n')[0];
-      } catch (e) { /* 回退到路径检查... */ }
+      if (!resolvedPath) {
+          console.warn(`[Main] Protocol ${protocol} not found.`);
+          return null;
+      }
+    } else {
+        // 处理快捷方式
+        if (resolvedPath.toLowerCase().endsWith('.lnk')) {
+            try {
+                const shortcut = shell.readShortcutLink(resolvedPath);
+                if (shortcut.target) {
+                    resolvedPath = shortcut.target;
+                }
+            } catch (e) {
+                console.warn('解析快捷方式失败:', e);
+            }
+        }
+
+        if (!path.isAbsolute(resolvedPath)) {
+          try {
+            // 优先检查系统目录下的常用工具，解决 where 命令可能找不到的问题
+            const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+            let system32 = path.join(systemRoot, 'System32');
+            
+            // 如果是 32 位进程运行在 64 位系统上，尝试使用 Sysnative 访问真正的 System32
+            if (process.arch === 'ia32' && process.env.PROCESSOR_ARCHITEW6432) {
+                const sysnative = path.join(systemRoot, 'Sysnative');
+                if (fs.existsSync(sysnative)) {
+                    system32 = sysnative;
+                }
+            }
+            
+            const knownTools = {
+                'taskmgr': path.join(system32, 'Taskmgr.exe'),
+                'taskmgr.exe': path.join(system32, 'Taskmgr.exe'),
+                'cmd': path.join(system32, 'cmd.exe'),
+                'cmd.exe': path.join(system32, 'cmd.exe'),
+                'calc': path.join(system32, 'calc.exe'),
+                'calc.exe': path.join(system32, 'calc.exe'),
+                'control': path.join(system32, 'control.exe'),
+                'control.exe': path.join(system32, 'control.exe'),
+                'notepad': path.join(system32, 'notepad.exe'),
+                'notepad.exe': path.join(system32, 'notepad.exe'),
+                'explorer': path.join(systemRoot, 'explorer.exe'),
+                'explorer.exe': path.join(systemRoot, 'explorer.exe')
+            };
+
+            const lowerName = resolvedPath.toLowerCase();
+            if (knownTools[lowerName] && fs.existsSync(knownTools[lowerName])) {
+                resolvedPath = knownTools[lowerName];
+            } else {
+                // 如果不是已知工具，尝试使用 where 查找
+                let output = '';
+                try {
+                    output = execSync(`where "${resolvedPath}"`, { encoding: 'utf8' });
+                } catch (e) {
+                    // 如果查找失败且没有扩展名，尝试添加 .exe
+                    if (!path.extname(resolvedPath)) {
+                        try {
+                            output = execSync(`where "${resolvedPath}.exe"`, { encoding: 'utf8' });
+                        } catch (e2) {
+                            throw e;
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
+                resolvedPath = output.split('\r\n')[0].trim();
+            }
+          } catch (e) { 
+              // ignore
+          }
+        }
     }
+    
     const icon = await app.getFileIcon(resolvedPath, { size: 'large' });
     return icon.toDataURL();
-  } catch (err) { return null; }
+  } catch (err) { 
+      console.error('获取图标失败:', filePath, err);
+      return null; 
+  }
 });
 
 ipcMain.handle('get-volume', () => getSystemVolume());
@@ -434,8 +539,11 @@ function createSettingsWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-    }
+    },
+    autoHideMenuBar: true // 隐藏菜单栏
   });
+  
+  settingsWindow.setMenuBarVisibility(false);
 
   // 加载设置页面（暂时先加载一个简单的HTML）
   settingsWindow.loadFile('settings.html');
