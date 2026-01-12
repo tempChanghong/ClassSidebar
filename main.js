@@ -3,10 +3,47 @@ const path = require('path');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { getExePathFromProtocol, getSystemVolume, setSystemVolume } = require('./main-utils');
+const Store = require('electron-store');
 
 let mainWindow;
 let settingsWindow = null; // 设置窗口
 
+// 初始化 Store
+const schema = {
+    widgets: {
+        type: 'array',
+        default: []
+    },
+    transforms: {
+        type: 'object',
+        default: { display: 0, height: 64, posy: 0, width: 400, opacity: 0.95, animation_speed: 1 }
+    }
+};
+
+const store = new Store({ schema });
+
+// 数据迁移逻辑：如果是第一次运行（Store为空），尝试从旧的 config.json 迁移数据
+function migrateOldConfig() {
+    // 检查 store 是否有数据（简单判断 widgets 是否为空数组且 transforms 是默认值）
+    // 或者直接判断 store.size (electron-store 6.x 可能没有 size 属性，用 get 判断)
+    const currentWidgets = store.get('widgets');
+    if (!currentWidgets || currentWidgets.length === 0) {
+        const oldConfigPath = path.join(__dirname, 'data', 'config.json');
+        if (fs.existsSync(oldConfigPath)) {
+            try {
+                console.log('检测到旧配置文件，正在迁移...');
+                const content = fs.readFileSync(oldConfigPath, 'utf8');
+                const oldConfig = JSON.parse(content);
+                store.set(oldConfig);
+                console.log('配置迁移成功！');
+            } catch (e) {
+                console.error('迁移旧配置失败:', e);
+            }
+        }
+    }
+}
+
+migrateOldConfig();
 
 function getIsAdmin() {
   try {
@@ -17,38 +54,8 @@ function getIsAdmin() {
   }
 }
 
-function getConfigSync() {
-  const configPath = path.join(__dirname, 'data', 'config.json');
-  if (fs.existsSync(configPath)) {
-    try {
-      const content = fs.readFileSync(configPath, 'utf8');
-      return JSON.parse(content);
-    } catch (e) {
-      console.error('解析配置文件失败:', e);
-    }
-  }
-  return { widgets: [], transforms: { display: 0, height: 64, posy: 0 } };
-}
-
-let config = getConfigSync();
-
-function saveConfig(newConfig) {
-  try {
-    const configPath = path.join(__dirname, 'data', 'config.json');
-    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8');
-    config = newConfig; // 更新内存中的配置
-    // 通知主窗口配置已更新
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('config-updated', newConfig);
-    }
-    return true;
-  } catch (err) {
-    console.error('保存配置失败:', err);
-    return false;
-  }
-}
-
 function createWindow() {
+  const config = store.store;
   const transforms = config.transforms || { display: 0, height: 64, posy: 0 };
   const displays = screen.getAllDisplays();
   const targetDisplay = (transforms.display < displays.length)
@@ -114,6 +121,7 @@ function createWindow() {
 
 ipcMain.on('resize-window', (event, width, height, y) => {
   if (mainWindow) {
+    const config = store.store;
     const transforms = config.transforms || { display: 0, height: 64, posy: 0 };
     const displays = screen.getAllDisplays();
     const targetDisplay = (transforms.display < displays.length) ? displays[transforms.display] : screen.getPrimaryDisplay();
@@ -142,17 +150,23 @@ ipcMain.on('set-ignore-mouse', (event, ignore, forward) => {
 });
 
 ipcMain.handle('get-config', async () => {
-  config = getConfigSync();
+  const config = store.store;
   const displays = screen.getAllDisplays();
   const targetDisplay = (config.transforms?.display < displays.length) ? displays[config.transforms.display] : screen.getPrimaryDisplay();
   return { ...config, displayBounds: targetDisplay.bounds };
 });
 
 ipcMain.handle('save-config', async (event, newConfig) => {
-  if (saveConfig(newConfig)) {
+  try {
+      store.store = newConfig;
+      // 通知主窗口配置已更新
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('config-updated', newConfig);
+      }
       return { success: true };
-  } else {
-      return { success: false, error: 'Failed to save config' };
+  } catch (err) {
+      console.error('保存配置失败:', err);
+      return { success: false, error: err.message };
   }
 });
 
@@ -269,15 +283,21 @@ ipcMain.on('show-context-menu', (event, itemData) => {
             label: '删除',
             click: () => {
                 // 执行删除逻辑
-                if (config.widgets[widgetIndex] && 
-                    config.widgets[widgetIndex].targets && 
-                    config.widgets[widgetIndex].targets[itemIndex]) {
+                const widgets = store.get('widgets');
+                if (widgets[widgetIndex] && 
+                    widgets[widgetIndex].targets && 
+                    widgets[widgetIndex].targets[itemIndex]) {
                     
                     // 从数组中移除
-                    config.widgets[widgetIndex].targets.splice(itemIndex, 1);
+                    widgets[widgetIndex].targets.splice(itemIndex, 1);
                     
                     // 保存配置
-                    saveConfig(config);
+                    store.set('widgets', widgets);
+                    
+                    // 通知更新
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('config-updated', store.store);
+                    }
                 }
             }
         }));
@@ -482,8 +502,11 @@ ipcMain.handle('add-shortcut', async (event, filePath) => {
     // 移除扩展名作为默认名称
     let name = fileName.replace(/\.[^/.]+$/, "");
     
+    // 从 Store 获取当前的 widgets
+    const widgets = store.get('widgets', []);
+    
     // 查找第一个 launcher 类型的 widget
-    let launcherWidget = config.widgets.find(w => w.type === 'launcher');
+    let launcherWidget = widgets.find(w => w.type === 'launcher');
     
     // 如果没有 launcher，创建一个新的
     if (!launcherWidget) {
@@ -492,7 +515,7 @@ ipcMain.handle('add-shortcut', async (event, filePath) => {
         layout: 'grid',
         targets: []
       };
-      config.widgets.push(launcherWidget);
+      widgets.push(launcherWidget);
     }
     
     // 确保 targets 是数组
@@ -507,7 +530,12 @@ ipcMain.handle('add-shortcut', async (event, filePath) => {
     });
     
     // 保存配置
-    saveConfig(config);
+    store.set('widgets', widgets);
+    
+    // 通知更新
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('config-updated', store.store);
+    }
     
     return { success: true };
   } catch (err) {
