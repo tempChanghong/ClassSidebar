@@ -50,6 +50,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "electron-store": "^6.0.1",
     "loudness": "^0.4.2"
   }
 }
