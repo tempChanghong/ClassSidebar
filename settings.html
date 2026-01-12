@@ -15,15 +15,16 @@
         body {
             font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             color: #333;
+            /* 移除 overflow: hidden，或者确保子元素能处理滚动 */
             overflow: hidden;
         }
 
         /* 左侧导航栏 */
         .sidebar {
-            width: 200px;
+            width: 220px;
             background: #ffffff;
             box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
             display: flex;
@@ -31,87 +32,81 @@
             padding: 24px 0;
             position: relative;
             z-index: 10;
+            flex-shrink: 0;
         }
 
         .sidebar-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 20px;
+            font-weight: 700;
             color: #1f2937;
-            padding: 0 20px 16px;
-            border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 12px;
+            padding: 0 24px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .nav-list {
             list-style: none;
-            padding: 0;
+            padding: 0 12px;
             margin: 0;
         }
 
         .nav-item {
             position: relative;
+            margin-bottom: 4px;
         }
 
         .nav-link {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            padding: 12px 16px;
             color: #6b7280;
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            border-radius: 8px;
             cursor: pointer;
-        }
-
-        .nav-link::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 0;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            border-radius: 0 2px 2px 0;
-            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .nav-link:hover {
             color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
+            background: rgba(59, 130, 246, 0.08);
         }
 
         .nav-link.active {
-            color: #3b82f6;
-            background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
+            color: #2563eb;
+            background: rgba(59, 130, 246, 0.12);
             font-weight: 600;
         }
 
-        .nav-link.active::before {
-            height: 24px;
-        }
-
         .nav-icon {
-            margin-right: 10px;
-            font-size: 16px;
+            margin-right: 12px;
+            font-size: 18px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 20px;
+            width: 24px;
         }
 
         /* 主内容区域 */
         .main-content {
             flex: 1;
             padding: 40px;
+            /* 关键：允许垂直滚动 */
             overflow-y: auto;
+            height: 100vh;
+            scroll-behavior: smooth;
         }
 
         .content-section {
             display: none;
             animation: fadeIn 0.3s ease;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 80px; /* 为底部保存按钮留出空间 */
         }
 
         .content-section.active {
@@ -119,20 +114,13 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .section-header {
             font-size: 28px;
-            font-weight: 600;
+            font-weight: 700;
             color: #111827;
             margin-bottom: 8px;
         }
@@ -146,23 +134,419 @@
 
         .content-card {
             background: #ffffff;
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 24px;
+            border: 1px solid #f3f4f6;
         }
 
         .card-title {
             font-size: 16px;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f3f4f6;
         }
 
-        .card-content {
+        /* 表单元素样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
             font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-helper {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+            color: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            border: 1px solid #d1d5db;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-save-container {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            z-index: 100;
+        }
+
+        .btn-save-float {
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* 组件列表样式 */
+        .widget-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .widget-item {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.2s;
+            overflow: hidden;
+        }
+
+        .widget-item:hover {
+            border-color: #bfdbfe;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+        }
+
+        .widget-info {
+            flex: 1;
+        }
+
+        .widget-type {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .widget-type-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #e0e7ff;
+            color: #3730a3;
+            font-weight: 500;
+        }
+
+        .widget-summary {
+            font-size: 13px;
             color: #6b7280;
-            line-height: 1.6;
+            margin-top: 4px;
+        }
+
+        .widget-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .widget-action-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+
+        .widget-action-btn:hover {
+            background: #fff;
+            border-color: #d1d5db;
+            color: #111827;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .widget-action-btn.delete:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
+        .widget-body {
+            padding: 20px;
+            display: none;
+            background: #fff;
+        }
+
+        .widget-item.expanded .widget-body {
+            display: block;
+        }
+
+        .widget-item.expanded .widget-header {
+            background: #f0f9ff;
+            border-bottom-color: #bfdbfe;
+        }
+
+        .add-widget-container {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f8fafc;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-widget-select {
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #fff;
+            min-width: 200px;
+            font-size: 14px;
+        }
+
+        /* 快捷方式列表样式 */
+        .shortcut-list {
+            margin-top: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            background: #fff;
+        }
+
+        .shortcut-item:last-child {
+            border-bottom: none;
+        }
+
+        .shortcut-name-input {
+            flex: 1;
+            font-size: 13px;
+            color: #374151;
+            font-weight: 500;
+            border: 1px solid transparent;
+            background: transparent;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .shortcut-name-input:hover {
+            background: #f3f4f6;
+        }
+
+        .shortcut-name-input:focus {
+            background: #fff;
+            border-color: #3b82f6;
+            outline: none;
+        }
+
+        .shortcut-path {
+            flex: 2;
+            font-size: 12px;
+            color: #9ca3af;
+            margin: 0 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shortcut-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* 组件库样式 */
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .library-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+        }
+
+        .library-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #bfdbfe;
+        }
+
+        .library-icon {
+            width: 48px;
+            height: 48px;
+            background: #f0f9ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #3b82f6;
+        }
+
+        .library-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .library-desc {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 20px;
+            flex: 1;
+            line-height: 1.5;
+        }
+
+        /* Toast 通知样式 */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(31, 41, 55, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(8px);
+            min-width: 200px;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toast.success { border-left: 4px solid #10b981; }
+        .toast.error { border-left: 4px solid #ef4444; }
+        .toast.info { border-left: 4px solid #3b82f6; }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes toast-out {
+            to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
         }
     </style>
 </head>
@@ -170,18 +554,26 @@
 <body>
     <!-- 左侧导航栏 -->
     <aside class="sidebar">
-        <div class="sidebar-title">设置</div>
+        <div class="sidebar-title">
+            <span>⚙️</span> 设置
+        </div>
         <ul class="nav-list">
             <li class="nav-item">
                 <a class="nav-link active" data-section="basic">
-                    <span class="nav-icon">⚙️</span>
-                    <span>基本</span>
+                    <span class="nav-icon">🖥️</span>
+                    <span>基本设置</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" data-section="components">
                     <span class="nav-icon">🧩</span>
-                    <span>组件</span>
+                    <span>组件管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-section="library">
+                    <span class="nav-icon">📚</span>
+                    <span>组件库</span>
                 </a>
             </li>
         </ul>
@@ -192,46 +584,484 @@
         <!-- 基本设置内容 -->
         <section class="content-section active" id="basic-section">
             <h1 class="section-header">基本设置</h1>
-            <p class="section-description">配置应用程序的基本选项和偏好设置</p>
+            <p class="section-description">调整侧边栏的位置、大小和动画效果。</p>
 
             <div class="content-card">
-                <h2 class="card-title">常规</h2>
+                <h2 class="card-title">位置与布局</h2>
                 <div class="card-content">
-                    基本设置内容将在这里显示
+                    <div class="form-group">
+                        <label class="form-label">显示器索引</label>
+                        <input type="number" id="display-index" class="form-input" min="0" placeholder="0">
+                        <div class="form-helper">多显示器环境下，选择显示在第几个屏幕上（从 0 开始）。</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">垂直偏移 (Y轴)</label>
+                        <input type="number" id="pos-y" class="form-input" placeholder="0">
+                        <div class="form-helper">正数向下偏移，负数向上偏移（单位：像素）。</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">初始高度</label>
+                        <input type="number" id="initial-height" class="form-input" min="40" placeholder="64">
+                        <div class="form-helper">侧边栏收起时的高度（单位：像素）。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <h2 class="card-title">动画与交互</h2>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label class="form-label">动画速度</label>
+                        <input type="number" id="anim-speed" class="form-input" step="0.1" min="0.1" max="5.0" placeholder="1.0">
+                        <div class="form-helper">数值越大动画越快。默认为 1.0。</div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- 组件设置内容 -->
         <section class="content-section" id="components-section">
-            <h1 class="section-header">组件设置</h1>
-            <p class="section-description">管理和配置侧边栏中的各种组件</p>
+            <h1 class="section-header">组件管理</h1>
+            <p class="section-description">添加、删除或配置侧边栏中的功能组件。</p>
 
-            <div class="content-card">
-                <h2 class="card-title">组件列表</h2>
-                <div class="card-content">
-                    组件设置内容将在这里显示
-                </div>
+            <div id="widget-list" class="widget-list-container">
+                <!-- 组件列表将动态生成 -->
+            </div>
+
+            <div class="add-widget-container">
+                <select id="new-widget-type" class="add-widget-select">
+                    <option value="launcher">应用启动器 (Launcher)</option>
+                    <option value="volume_slider">音量控制 (Volume)</option>
+                    <option value="files">文件列表 (Files)</option>
+                    <option value="drag_to_launch">拖拽启动 (Drag to Launch)</option>
+                </select>
+                <button id="add-widget-btn" class="btn btn-primary">
+                    <span>+</span> 添加新组件
+                </button>
             </div>
         </section>
+
+        <!-- 组件库内容 -->
+        <section class="content-section" id="library-section">
+            <h1 class="section-header">组件库</h1>
+            <p class="section-description">浏览并添加预设的实用组件。</p>
+
+            <div class="library-grid" id="library-grid">
+                <!-- 库内容将动态生成 -->
+            </div>
+        </section>
+
+        <!-- 悬浮保存按钮 -->
+        <div class="btn-save-container">
+            <button id="save-btn" class="btn btn-primary btn-save-float">保存所有更改</button>
+        </div>
     </main>
 
     <script>
+        let currentConfig = null;
+
+        // Toast 通知函数
+        function showToast(message, type = 'success') {
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            let icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'info') icon = 'ℹ️';
+
+            toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            // 3秒后自动移除
+            setTimeout(() => {
+                toast.style.animation = 'toast-out 0.3s forwards';
+                toast.addEventListener('animationend', () => {
+                    toast.remove();
+                });
+            }, 3000);
+        }
+
+        // 预设组件库数据
+        const widgetPresets = [
+            {
+                title: "ClassIsland",
+                icon: "🏝️",
+                description: "快速启动 ClassIsland 应用程序。",
+                config: {
+                    type: "launcher",
+                    layout: "grid",
+                    targets: [
+                        { name: "ClassIsland", target: "classisland://" }
+                    ]
+                }
+            },
+            {
+                title: "Secrandom",
+                icon: "🎲",
+                description: "快速启动 Secrandom 随机数生成器。",
+                config: {
+                    type: "launcher",
+                    layout: "grid",
+                    targets: [
+                        { name: "Secrandom", target: "secrandom://" }
+                    ]
+                }
+            },
+            {
+                title: "系统工具",
+                icon: "🛠️",
+                description: "包含任务管理器、控制面板等常用系统工具。",
+                config: {
+                    type: "launcher",
+                    layout: "grid",
+                    targets: [
+                        { name: "任务管理器", target: "taskmgr" },
+                        { name: "控制面板", target: "control" },
+                        { name: "计算器", target: "calc" }
+                    ]
+                }
+            },
+            {
+                title: "最近文档",
+                icon: "📄",
+                description: "显示最近使用的文档列表。",
+                config: {
+                    type: "files",
+                    layout: "vertical",
+                    folder_path: "%USERPROFILE%\\Recent",
+                    max_count: 10
+                }
+            }
+        ];
+
         // 导航切换功能
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function (e) {
                 e.preventDefault();
-
-                // 移除所有活动状态
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-
-                // 添加当前活动状态
                 this.classList.add('active');
                 const sectionId = this.dataset.section + '-section';
                 document.getElementById(sectionId).classList.add('active');
             });
         });
+
+        // 加载配置
+        async function loadSettings() {
+            try {
+                currentConfig = await window.electronAPI.getConfig();
+                if (currentConfig) {
+                    // 填充基本设置
+                    if (currentConfig.transforms) {
+                        document.getElementById('display-index').value = currentConfig.transforms.display || 0;
+                        document.getElementById('pos-y').value = currentConfig.transforms.posy || 0;
+                        document.getElementById('initial-height').value = currentConfig.transforms.height || 64;
+                        document.getElementById('anim-speed').value = currentConfig.transforms.animation_speed || 1.0;
+                    }
+                    renderWidgetList();
+                    renderLibrary();
+                }
+            } catch (err) {
+                console.error('Failed to load settings:', err);
+                showToast('加载配置失败', 'error');
+            }
+        }
+
+        // 渲染组件库
+        function renderLibrary() {
+            const container = document.getElementById('library-grid');
+            container.innerHTML = '';
+
+            widgetPresets.forEach((preset, index) => {
+                const card = document.createElement('div');
+                card.className = 'library-card';
+                card.innerHTML = `
+                    <div class="library-icon">${preset.icon}</div>
+                    <div class="library-title">${preset.title}</div>
+                    <div class="library-desc">${preset.description}</div>
+                    <button class="btn btn-secondary btn-sm" onclick="addPreset(${index})">添加</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 添加预设组件
+        window.addPreset = (index) => {
+            const preset = widgetPresets[index];
+            // 深拷贝配置以避免引用问题
+            const newWidget = JSON.parse(JSON.stringify(preset.config));
+
+            if (!currentConfig.widgets) currentConfig.widgets = [];
+            currentConfig.widgets.push(newWidget);
+
+            showToast(`已添加 "${preset.title}"`, 'success');
+            renderWidgetList();
+
+            // 切换到组件管理标签页
+            document.querySelector('[data-section="components"]').click();
+            // 自动展开新添加的组件
+            setTimeout(() => toggleWidget(currentConfig.widgets.length - 1), 50);
+        };
+
+        // 渲染组件列表
+        function renderWidgetList() {
+            const container = document.getElementById('widget-list');
+            container.innerHTML = '';
+
+            if (!currentConfig || !currentConfig.widgets) return;
+
+            currentConfig.widgets.forEach((widget, index) => {
+                const item = document.createElement('div');
+                item.className = 'widget-item';
+
+                // 类型名称映射
+                const typeNames = {
+                    'launcher': '应用启动器',
+                    'volume_slider': '音量控制',
+                    'files': '文件列表',
+                    'drag_to_launch': '拖拽启动'
+                };
+
+                let summary = '';
+                if (widget.type === 'launcher') summary = `${widget.targets ? widget.targets.length : 0} 个快捷方式`;
+                else if (widget.type === 'files') summary = widget.folder_path || '未设置路径';
+                else if (widget.type === 'drag_to_launch') summary = widget.name || '拖拽启动';
+                else summary = '系统组件';
+
+                // 生成编辑表单 HTML
+                let editFormHtml = '';
+                if (widget.type === 'files') {
+                    editFormHtml = `
+                        <div class="form-group">
+                            <label class="form-label">文件夹路径</label>
+                            <input type="text" class="form-input widget-input" data-field="folder_path" value="${widget.folder_path || ''}" placeholder="%USERPROFILE%\\Desktop">
+                            <div class="form-helper">支持环境变量，如 %USERPROFILE%</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最大显示数量</label>
+                            <input type="number" class="form-input widget-input" data-field="max_count" value="${widget.max_count || 10}">
+                        </div>
+                    `;
+                } else if (widget.type === 'drag_to_launch') {
+                    editFormHtml = `
+                        <div class="form-group">
+                            <label class="form-label">显示名称</label>
+                            <input type="text" class="form-input widget-input" data-field="name" value="${widget.name || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">执行命令</label>
+                            <input type="text" class="form-input widget-input" data-field="targets" value="${widget.targets ? widget.targets.replace(/"/g, '&quot;') : ''}">
+                            <div class="form-helper">使用 {{source}} 代表拖入的文件路径</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" class="widget-input" data-field="show_all_time" ${widget.show_all_time !== false ? 'checked' : ''}>
+                                始终显示 (不勾选则仅在拖拽时显示)
+                            </label>
+                        </div>
+                    `;
+                } else if (widget.type === 'launcher') {
+                    // 生成快捷方式列表 HTML
+                    let shortcutsHtml = '';
+                    if (widget.targets && widget.targets.length > 0) {
+                        shortcutsHtml = widget.targets.map((target, tIndex) => `
+                            <div class="shortcut-item">
+                                <input type="text" class="shortcut-name-input" value="${target.name}" onchange="updateShortcutName(${index}, ${tIndex}, this.value)" placeholder="名称">
+                                <div class="shortcut-path" title="${target.target}">${target.target}</div>
+                                <div class="shortcut-actions">
+                                    <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteShortcut(${index}, ${tIndex})">删除</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        shortcutsHtml = '<div style="padding:12px; color:#9ca3af; text-align:center;">暂无快捷方式</div>';
+                    }
+
+                    editFormHtml = `
+                        <div class="form-group">
+                            <label class="form-label">布局模式</label>
+                            <select class="form-input widget-input" data-field="layout">
+                                <option value="vertical" ${widget.layout === 'vertical' ? 'selected' : ''}>垂直列表</option>
+                                <option value="grid" ${widget.layout === 'grid' ? 'selected' : ''}>网格图标</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                                快捷方式列表
+                                <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); addShortcut(${index})">+ 添加</button>
+                            </label>
+                            <div class="shortcut-list">
+                                ${shortcutsHtml}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    editFormHtml = `<div class="form-helper">此组件没有可配置的选项。</div>`;
+                }
+
+                item.innerHTML = `
+                    <div class="widget-header" onclick="toggleWidget(${index})">
+                        <div class="widget-info">
+                            <div class="widget-type">
+                                ${typeNames[widget.type] || widget.type}
+                                <span class="widget-type-badge">${widget.type}</span>
+                            </div>
+                            <div class="widget-summary">${summary}</div>
+                        </div>
+                        <div class="widget-actions">
+                            <button class="widget-action-btn" onclick="event.stopPropagation(); moveWidget(${index}, -1)" title="上移" ${index === 0 ? 'disabled' : ''}>↑</button>
+                            <button class="widget-action-btn" onclick="event.stopPropagation(); moveWidget(${index}, 1)" title="下移" ${index === currentConfig.widgets.length - 1 ? 'disabled' : ''}>↓</button>
+                            <button class="widget-action-btn delete" onclick="event.stopPropagation(); deleteWidget(${index})" title="删除">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="widget-body" id="widget-body-${index}">
+                        ${editFormHtml}
+                    </div>
+                `;
+                container.appendChild(item);
+
+                // 绑定输入事件，实时更新 config 对象
+                const inputs = item.querySelectorAll('.widget-input');
+                inputs.forEach(input => {
+                    input.addEventListener('change', (e) => {
+                        const field = e.target.dataset.field;
+                        let value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                        if (e.target.type === 'number') value = parseFloat(value);
+
+                        currentConfig.widgets[index][field] = value;
+                    });
+                });
+            });
+        }
+
+        window.toggleWidget = (index) => {
+            const item = document.getElementById(`widget-body-${index}`).parentElement;
+            item.classList.toggle('expanded');
+        };
+
+        window.moveWidget = (index, direction) => {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= currentConfig.widgets.length) return;
+            const temp = currentConfig.widgets[index];
+            currentConfig.widgets[index] = currentConfig.widgets[newIndex];
+            currentConfig.widgets[newIndex] = temp;
+            renderWidgetList();
+        };
+
+        window.deleteWidget = (index) => {
+            if (confirm('确定要删除这个组件吗？')) {
+                currentConfig.widgets.splice(index, 1);
+                renderWidgetList();
+            }
+        };
+
+        // 更新快捷方式名称
+        window.updateShortcutName = (widgetIndex, shortcutIndex, newName) => {
+            if (currentConfig.widgets[widgetIndex] && currentConfig.widgets[widgetIndex].targets) {
+                currentConfig.widgets[widgetIndex].targets[shortcutIndex].name = newName;
+            }
+        };
+
+        // 添加快捷方式
+        window.addShortcut = async (widgetIndex) => {
+            try {
+                const filePath = await window.electronAPI.openFileDialog();
+                if (filePath) {
+                    // 简单的名称提取逻辑
+                    const name = filePath.split(/[\\/]/).pop().replace(/\.[^/.]+$/, "");
+
+                    if (!currentConfig.widgets[widgetIndex].targets) {
+                        currentConfig.widgets[widgetIndex].targets = [];
+                    }
+
+                    currentConfig.widgets[widgetIndex].targets.push({
+                        name: name,
+                        target: filePath
+                    });
+
+                    // 重新渲染列表以显示新项目
+                    renderWidgetList();
+                    // 保持展开状态
+                    setTimeout(() => {
+                        const item = document.getElementById(`widget-body-${widgetIndex}`).parentElement;
+                        item.classList.add('expanded');
+                    }, 50);
+                }
+            } catch (err) {
+                console.error('Failed to add shortcut:', err);
+                showToast('添加失败: ' + err.message, 'error');
+            }
+        };
+
+        // 删除快捷方式
+        window.deleteShortcut = (widgetIndex, shortcutIndex) => {
+            if (confirm('确定要删除这个快捷方式吗？')) {
+                currentConfig.widgets[widgetIndex].targets.splice(shortcutIndex, 1);
+                renderWidgetList();
+                // 保持展开状态
+                setTimeout(() => {
+                    const item = document.getElementById(`widget-body-${widgetIndex}`).parentElement;
+                    item.classList.add('expanded');
+                }, 50);
+            }
+        };
+
+        document.getElementById('add-widget-btn').addEventListener('click', () => {
+            const type = document.getElementById('new-widget-type').value;
+            let newWidget = { type: type };
+            if (type === 'launcher') {
+                newWidget.layout = 'grid';
+                newWidget.targets = [];
+            } else if (type === 'files') {
+                newWidget.layout = 'vertical';
+                newWidget.folder_path = '%USERPROFILE%\\Recent';
+                newWidget.max_count = 10;
+            } else if (type === 'drag_to_launch') {
+                newWidget.name = '发送到手机';
+                newWidget.targets = 'kde-connect-cli --share {{source}} -n "My Phone"';
+            }
+            if (!currentConfig.widgets) currentConfig.widgets = [];
+            currentConfig.widgets.push(newWidget);
+            renderWidgetList();
+            // 自动展开新添加的组件
+            setTimeout(() => toggleWidget(currentConfig.widgets.length - 1), 50);
+        });
+
+        // 统一保存按钮
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            if (!currentConfig) return;
+
+            // 更新基本设置
+            const newTransforms = {
+                ...currentConfig.transforms,
+                display: parseInt(document.getElementById('display-index').value) || 0,
+                posy: parseInt(document.getElementById('pos-y').value) || 0,
+                height: parseInt(document.getElementById('initial-height').value) || 64,
+                animation_speed: parseFloat(document.getElementById('anim-speed').value) || 1.0
+            };
+            currentConfig.transforms = newTransforms;
+
+            try {
+                const result = await window.electronAPI.saveConfig(currentConfig);
+                if (result.success) {
+                    showToast('设置已保存！', 'success');
+                    renderWidgetList(); // 刷新列表以更新摘要
+                } else {
+                    showToast('保存失败: ' + result.error, 'error');
+                }
+            } catch (err) {
+                showToast('保存出错: ' + err.message, 'error');
+            }
+        });
+
+        loadSettings();
     </script>
 </body>
 

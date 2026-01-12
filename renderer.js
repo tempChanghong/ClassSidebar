@@ -76,30 +76,49 @@ function stopAnimation() {
 }
 
 /**
+ * 应用配置到界面
+ * @param {Object} config 配置对象
+ */
+function applyConfig(config) {
+    currentConfig = config;
+    // 应用配置中的变换参数
+    if (config.transforms) {
+        if (typeof config.transforms.height === 'number') {
+            START_H = config.transforms.height;
+            // 如果当前是收起状态，立即更新高度
+            if (!document.body.classList.contains('expanded')) {
+                updateSidebarStyles(0);
+            }
+        }
+        if (typeof config.transforms.animation_speed === 'number') {
+            const speed = config.transforms.animation_speed;
+            // 根据速度配置调整 CSS 变量
+            document.documentElement.style.setProperty('--sidebar-duration', `${0.5 / speed}s`);
+            document.documentElement.style.setProperty('--content-duration', `${0.3 / speed}s`);
+        }
+    }
+    // 渲染小部件
+    renderWidgets(config.widgets);
+}
+
+/**
  * 加载配置文件
  */
 async function loadConfig() {
     try {
         const config = await window.electronAPI.getConfig();
-        currentConfig = config;
-        // 应用配置中的变换参数
-        if (config.transforms) {
-            if (typeof config.transforms.height === 'number') {
-                START_H = config.transforms.height;
-                updateSidebarStyles(0); // 初始化样式
-            }
-            if (typeof config.transforms.animation_speed === 'number') {
-                const speed = config.transforms.animation_speed;
-                // 根据速度配置调整 CSS 变量
-                document.documentElement.style.setProperty('--sidebar-duration', `${0.5 / speed}s`);
-                document.documentElement.style.setProperty('--content-duration', `${0.3 / speed}s`);
-            }
-        }
-        // 渲染小部件
-        renderWidgets(config.widgets);
+        applyConfig(config);
     } catch (err) {
         console.error('加载配置失败:', err);
     }
+}
+
+// 监听配置更新事件
+if (window.electronAPI.onConfigUpdated) {
+    window.electronAPI.onConfigUpdated((newConfig) => {
+        console.log('配置已更新，重新应用...', newConfig);
+        applyConfig(newConfig);
+    });
 }
 
 /**
@@ -246,14 +265,28 @@ const handleEnd = (currentX) => {
 
     const deltaX = currentX ? (currentX - startX) : 0;
     const duration = performance.now() - startTimeStamp;
+    
     // 如果向左快速滑动，强制收起
     if (currentVelocity < -VELOCITY_THRESHOLD) {
         collapse();
         return;
     }
-    // 判断是否满足展开条件（距离、速度或短时间内的快速滑动）
-    if (deltaX > THRESHOLD || currentVelocity > VELOCITY_THRESHOLD || (duration < 200 && deltaX > 20)) expand();
-    else collapse();
+    
+    // 判断是否满足展开条件
+    // 1. 拖拽距离超过阈值
+    // 2. 拖拽速度超过阈值
+    // 3. 短时间内的快速滑动 (Flick)
+    // 4. 新增：点击操作 (移动距离极小且时间短)，且当前未展开
+    const isClick = Math.abs(deltaX) < 5 && duration < 300;
+    
+    if (deltaX > THRESHOLD || currentVelocity > VELOCITY_THRESHOLD || (duration < 200 && deltaX > 20)) {
+        expand();
+    } else if (isClick && !document.body.classList.contains('expanded')) {
+        // 点击展开
+        expand();
+    } else {
+        collapse();
+    }
 };
 
 /**
@@ -433,8 +466,24 @@ window.addEventListener('dragleave', (e) => {
 window.addEventListener('drop', (e) => {
     e.preventDefault();
     if (dragLeaveTimer) clearTimeout(dragLeaveTimer);
-    // 这里未来可以处理文件放置逻辑
-    // 目前先统一收起，恢复初始状态
+
+    // 检查是否已经被其他组件处理（例如 drag-to-launch）
+    if (window._dragHandled) {
+        window._dragHandled = false; // 重置标记
+    } else {
+        // 如果未被处理，且有文件，则尝试添加快捷方式
+        if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+            for (const file of e.dataTransfer.files) {
+                const filePath = window.electronAPI.getFilePath(file);
+                if (filePath) {
+                    console.log('Adding shortcut for:', filePath);
+                    window.electronAPI.addShortcut(filePath);
+                }
+            }
+        }
+    }
+
+    // 统一收起，恢复初始状态
     collapse();
     // 恢复置顶
     window.electronAPI.setAlwaysOnTop(true);
@@ -450,4 +499,3 @@ if (settingsBtn) {
 }
 
 loadConfig();
-

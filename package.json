@@ -1,11 +1,37 @@
 {
   "name": "sidebar-for-class",
   "version": "1.0.0",
-  "description": "",
+  "description": "A sidebar utility for class",
   "main": "main.js",
   "scripts": {
     "start": "chcp 65001 >nul && electron . --disable-gpu --enable-logging",
+    "build": "electron-builder",
+    "dist": "electron-builder --win --x64",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.sidebar.class",
+    "productName": "SidebarForClass",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!src/*"
+    ]
   },
   "repository": {
     "type": "git",
@@ -20,7 +46,8 @@
   },
   "homepage": "https://github.com/PANDAJSR/sidebar-for-class#readme",
   "devDependencies": {
-    "electron": "^39.2.7"
+    "electron": "^39.2.7",
+    "electron-builder": "^24.13.3"
   },
   "dependencies": {
     "loudness": "^0.4.2"

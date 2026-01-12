@@ -1,6 +1,6 @@
-const { app, BrowserWindow, screen, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, shell, Menu, MenuItem, dialog } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { getExePathFromProtocol, getSystemVolume, setSystemVolume } = require('./main-utils');
 
@@ -10,7 +10,6 @@ let settingsWindow = null; // 设置窗口
 
 function getIsAdmin() {
   try {
-    const { execSync } = require('child_process');
     execSync('net session', { stdio: 'ignore' });
     return true;
   } catch (e) {
@@ -28,10 +27,44 @@ function getConfigSync() {
       console.error('解析配置文件失败:', e);
     }
   }
-  return { widgets: [], transforms: { display: 0, height: 64, posy: 0 } };
+  // 默认配置：只保留基础组件，移除特定应用
+  return { 
+      widgets: [
+          {
+              type: "launcher",
+              layout: "grid",
+              targets: [] // 默认为空，让用户自己添加
+          },
+          {
+              type: "volume_slider"
+          }
+      ], 
+      transforms: { display: 0, height: 64, posy: 0 } 
+  };
 }
 
 let config = getConfigSync();
+
+function saveConfig(newConfig) {
+  try {
+    const configPath = path.join(__dirname, 'data', 'config.json');
+    // 确保存储目录存在
+    const dir = path.dirname(configPath);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8');
+    config = newConfig; // 更新内存中的配置
+    // 通知主窗口配置已更新
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('config-updated', newConfig);
+    }
+    return true;
+  } catch (err) {
+    console.error('保存配置失败:', err);
+    return false;
+  }
+}
 
 function createWindow() {
   const transforms = config.transforms || { display: 0, height: 64, posy: 0 };
@@ -75,6 +108,10 @@ function createWindow() {
   }, 200);
 
   mainWindow.loadFile('index.html');
+  
+  // 保持 DevTools 开启以便调试
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  
   mainWindow.on('ready-to-show', () => mainWindow.show());
   mainWindow.on('blur', () => {
     if (shouldAlwaysOnTop) {
@@ -122,6 +159,127 @@ ipcMain.handle('get-config', async () => {
   return { ...config, displayBounds: targetDisplay.bounds };
 });
 
+ipcMain.handle('save-config', async (event, newConfig) => {
+  if (saveConfig(newConfig)) {
+      return { success: true };
+  } else {
+      return { success: false, error: 'Failed to save config' };
+  }
+});
+
+// 打开文件选择对话框
+ipcMain.handle('open-file-dialog', async () => {
+    const result = await dialog.showOpenDialog(settingsWindow || mainWindow, {
+        properties: ['openFile'],
+        filters: [
+            { name: 'Applications', extensions: ['exe', 'lnk', 'url', 'bat', 'cmd'] },
+            { name: 'All Files', extensions: ['*'] }
+        ]
+    });
+    
+    if (!result.canceled && result.filePaths.length > 0) {
+        return result.filePaths[0];
+    }
+    return null;
+});
+
+function resolveWindowsEnv(pathStr) {
+  if (!pathStr) return '';
+  return pathStr.replace(/%([^%]+)%/g, (_, n) => process.env[n] || '');
+}
+
+function resolveExecutablePath(target) {
+    let cleanPath = target.replace(/^"|"$/g, '');
+    cleanPath = resolveWindowsEnv(cleanPath);
+    
+    if (fs.existsSync(cleanPath)) return cleanPath;
+    
+    // 尝试使用 where 命令查找
+    try {
+        const output = execSync(`where "${cleanPath}"`, { encoding: 'utf8' });
+        const foundPath = output.split('\r\n')[0].trim();
+        if (foundPath && fs.existsSync(foundPath)) return foundPath;
+    } catch (e) {
+        // 忽略错误
+    }
+    
+    return null;
+}
+
+// 处理右键菜单请求
+ipcMain.on('show-context-menu', (event, itemData) => {
+    const menu = new Menu();
+    
+    // 只有当 itemData 包含必要信息时才显示管理选项
+    if (itemData && typeof itemData.widgetIndex === 'number' && typeof itemData.itemIndex === 'number') {
+        const { widgetIndex, itemIndex, target } = itemData;
+        
+        menu.append(new MenuItem({
+            label: '打开所在位置',
+            click: () => {
+                if (target) {
+                    const fullPath = resolveExecutablePath(target);
+                    console.log('[Main] Showing item in folder:', target, '->', fullPath);
+                    
+                    if (fullPath) {
+                        shell.showItemInFolder(fullPath);
+                    } else {
+                        console.error('[Main] Path does not exist:', target);
+                    }
+                }
+            }
+        }));
+        
+        menu.append(new MenuItem({ type: 'separator' }));
+        
+        menu.append(new MenuItem({
+            label: '删除',
+            click: () => {
+                // 执行删除逻辑
+                if (config.widgets[widgetIndex] && 
+                    config.widgets[widgetIndex].targets && 
+                    config.widgets[widgetIndex].targets[itemIndex]) {
+                    
+                    // 从数组中移除
+                    config.widgets[widgetIndex].targets.splice(itemIndex, 1);
+                    
+                    // 保存配置
+                    saveConfig(config);
+                }
+            }
+        }));
+    } else if (itemData && itemData.target) {
+        // 针对文件列表等只有 target 的情况
+        menu.append(new MenuItem({
+            label: '打开所在位置',
+            click: () => {
+                const fullPath = resolveExecutablePath(itemData.target);
+                console.log('[Main] Showing item in folder:', itemData.target, '->', fullPath);
+                if (fullPath) {
+                    shell.showItemInFolder(fullPath);
+                }
+            }
+        }));
+    } else {
+        // 如果是在空白处或其他地方点击，显示通用菜单
+        menu.append(new MenuItem({
+            label: '设置',
+            click: () => {
+                createSettingsWindow();
+            }
+        }));
+        
+        menu.append(new MenuItem({
+            label: '退出应用',
+            click: () => {
+                app.quit();
+            }
+        }));
+    }
+    
+    menu.popup({ window: BrowserWindow.fromWebContents(event.sender) });
+});
+
 ipcMain.on('launch-app', async (event, target, args) => {
   if (target.includes('://')) {
     shell.openExternal(target).catch(e => console.error('打开 URI 失败:', e));
@@ -151,7 +309,7 @@ ipcMain.handle('get-file-icon', async (event, filePath) => {
       if (!resolvedPath) return null;
     } else if (!path.isAbsolute(filePath)) {
       try {
-        const output = require('child_process').execSync(`where ${filePath}`, { encoding: 'utf8' });
+        const output = execSync(`where ${filePath}`, { encoding: 'utf8' });
         resolvedPath = output.split('\r\n')[0];
       } catch (e) { /* 回退到路径检查... */ }
     }
@@ -174,11 +332,6 @@ ipcMain.on('execute-command', (event, command) => {
     }
   });
 });
-
-function resolveWindowsEnv(pathStr) {
-  if (!pathStr) return '';
-  return pathStr.replace(/%([^%]+)%/g, (_, n) => process.env[n] || '');
-}
 
 ipcMain.handle('get-files-in-folder', async (event, folderPath, maxCount) => {
   try {
@@ -214,6 +367,47 @@ ipcMain.handle('get-files-in-folder', async (event, folderPath, maxCount) => {
   } catch (err) {
     console.error('Error listing files:', err);
     return [];
+  }
+});
+
+// 添加快捷方式
+ipcMain.handle('add-shortcut', async (event, filePath) => {
+  try {
+    const fileName = path.basename(filePath);
+    // 移除扩展名作为默认名称
+    let name = fileName.replace(/\.[^/.]+$/, "");
+    
+    // 查找第一个 launcher 类型的 widget
+    let launcherWidget = config.widgets.find(w => w.type === 'launcher');
+    
+    // 如果没有 launcher，创建一个新的
+    if (!launcherWidget) {
+      launcherWidget = {
+        type: 'launcher',
+        layout: 'grid',
+        targets: []
+      };
+      config.widgets.push(launcherWidget);
+    }
+    
+    // 确保 targets 是数组
+    if (!Array.isArray(launcherWidget.targets)) {
+      launcherWidget.targets = [];
+    }
+    
+    // 添加新项目
+    launcherWidget.targets.push({
+      name: name,
+      target: filePath
+    });
+    
+    // 保存配置
+    saveConfig(config);
+    
+    return { success: true };
+  } catch (err) {
+    console.error('添加快捷方式失败:', err);
+    return { success: false, error: err.message };
   }
 });
 

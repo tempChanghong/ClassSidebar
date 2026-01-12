@@ -1,7 +1,7 @@
 /**
  * 创建启动器项目元素
  */
-async function createLauncherItem(widget) {
+async function createLauncherItem(widget, widgetIndex, itemIndex) {
     const div = document.createElement('div');
     div.className = 'launcher-item';
 
@@ -29,6 +29,18 @@ async function createLauncherItem(widget) {
     div.onclick = () => {
         window.electronAPI.launchApp(widget.target, widget.args || []);
     };
+
+    // 添加右键菜单
+    div.oncontextmenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // 防止冒泡到 wrapper 触发默认菜单
+        window.electronAPI.showContextMenu({
+            widgetIndex: widgetIndex,
+            itemIndex: itemIndex,
+            target: widget.target
+        });
+    };
+
     return div;
 }
 
@@ -113,7 +125,20 @@ async function createFilesWidget(widget) {
         };
 
         // 复用通用的启动器项目创建逻辑
-        const item = await createLauncherItem(itemConfig);
+        // 注意：文件列表是动态生成的，不对应 config 中的 targets，所以不传递 index
+        // 这意味着文件列表中的项目暂时不支持右键删除（因为它们是读取文件夹生成的）
+        const item = await createLauncherItem(itemConfig, -1, -1);
+        
+        // 覆盖右键菜单，只提供“打开所在位置”
+        item.oncontextmenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.electronAPI.showContextMenu({
+                target: file.path
+                // 不传递 index，主进程就不会显示“删除”选项
+            });
+        };
+        
         container.appendChild(item);
     }
 
@@ -242,8 +267,9 @@ async function createDragToLaunchWidget(widget) {
 
     div.ondrop = (e) => {
         e.preventDefault();
-        // 移除 stopPropagation 以允许事件冒泡，触发文档重置和侧边栏收起
-        // e.stopPropagation();
+        // 标记事件已被处理，防止 renderer.js 中的 drop 事件再次处理（例如添加快捷方式）
+        window._dragHandled = true;
+        
         div.classList.remove('drag-over');
 
         // 注意：显隐逻辑现在由全局管理器处理，这里不需要手动操作
@@ -298,15 +324,18 @@ async function renderWidgets(widgets) {
     const container = document.getElementById('widget-container');
     container.innerHTML = ''; // 清空现有内容
 
-    for (const widget of widgets) {
+    for (let i = 0; i < widgets.length; i++) {
+        const widget = widgets[i];
+        
         // 渲染普通启动器组 (快捷方式网格/列表)
         if (widget.type === 'launcher' && Array.isArray(widget.targets)) {
             const group = document.createElement('div');
             const layout = widget.layout || 'vertical';
             group.className = `launcher-group layout-${layout}`;
 
-            for (const targetConfig of widget.targets) {
-                const item = await createLauncherItem(targetConfig);
+            for (let j = 0; j < widget.targets.length; j++) {
+                const targetConfig = widget.targets[j];
+                const item = await createLauncherItem(targetConfig, i, j);
                 group.appendChild(item);
             }
             container.appendChild(group);
@@ -323,15 +352,7 @@ async function renderWidgets(widgets) {
 
             // 渲染拖拽启动组件
         } else if (widget.type === 'drag_to_launch') {
-            // 这类组件通常是单个存在的，或者我们可以把它放在一个特定的group里吗？
-            // 目前假设它也是像 widgets 一样直接放在 container 里
-            // 如果为了布局整齐，可能需要包裹一下，但先直接渲染看看
-            // 为了保持一致性，如果它不是 group 的一部分，我们直接渲染 item
             const item = await createDragToLaunchWidget(widget);
-            // 为了让样式（特别是 sizing）正常工作，可能需要包裹在 launcher-group 里，
-            // 或者直接作为 widget-container 的子元素。
-            // 现有的 layout 似乎是基于 launcher-group 的。
-            // 让我们把它包裹在一个默认的 vertical group 里，或者单独处理
             const wrapper = document.createElement('div');
             wrapper.className = 'launcher-group layout-vertical'; // 使用默认布局 wrapper
             wrapper.appendChild(item);

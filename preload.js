@@ -14,6 +14,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 获取配置信息
     getConfig: () => ipcRenderer.invoke('get-config'),
 
+    // 保存配置信息
+    saveConfig: (newConfig) => ipcRenderer.invoke('save-config', newConfig),
+
+    // 监听配置更新
+    onConfigUpdated: (callback) => ipcRenderer.on('config-updated', (event, newConfig) => callback(newConfig)),
+
+    // 添加快捷方式
+    addShortcut: (filePath) => ipcRenderer.invoke('add-shortcut', filePath),
+
+    // 打开文件选择对话框
+    openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+
+    // 显示右键菜单
+    showContextMenu: (itemData) => ipcRenderer.send('show-context-menu', itemData),
+
     // 启动外部应用
     launchApp: (target, args) => ipcRenderer.send('launch-app', target, args),
 
@@ -45,4 +60,3 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 打开设置窗口
     openSettings: () => ipcRenderer.send('open-settings')
 });
-

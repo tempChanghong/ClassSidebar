@@ -39,6 +39,8 @@ html {
     width: 16px;
     cursor: default;
     touch-action: none;
+    /* 关键修复：给交互区域添加极低透明度的背景，防止鼠标事件直接穿透 */
+    background-color: rgba(0, 0, 0, 0.01);
 }
 
 /* 侧边栏主体 */
