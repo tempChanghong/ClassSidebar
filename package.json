@@ -22,6 +22,7 @@
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
     "electron-store": "^6.0.1",
+    "element-plus": "^2.13.1",
     "loudness": "^0.4.2",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",

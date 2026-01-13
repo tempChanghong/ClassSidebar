@@ -1,43 +1,67 @@
 <template>
-  <div class="settings-container">
-    <div class="settings-header">
+  <el-container class="settings-container">
+    <el-header class="settings-header">
       <h2>设置</h2>
       <div class="version-info">v{{ appVersion }}</div>
-    </div>
+    </el-header>
 
-    <div class="settings-content">
+    <el-main class="settings-content">
       <!-- 开机自启设置 -->
-      <div class="setting-item">
-        <label class="setting-label">
+      <el-card class="setting-item">
+        <div class="setting-label">
           <span>开机自启</span>
-          <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch">
-        </label>
-      </div>
+          <el-switch v-model="autoLaunch" @change="toggleAutoLaunch" />
+        </div>
+      </el-card>
+
+      <!-- 快捷添加组件 -->
+      <el-card class="setting-item">
+        <template #header>
+          <div class="card-header">
+            <h3>添加组件</h3>
+          </div>
+        </template>
+        <div class="add-widget-buttons">
+          <el-button @click="addLauncherWidget">添加启动器</el-button>
+          <el-button @click="addVolumeWidget">添加音量条</el-button>
+          <el-button @click="addFilesWidget">添加文件夹</el-button>
+          <el-button @click="addDragToLaunchWidget">添加拖拽启动</el-button>
+          <el-button @click="addClassIslandWidget">添加 ClassIsland</el-button>
+          <el-button @click="addSecRandomWidget">添加 SecRandom</el-button>
+        </div>
+      </el-card>
 
       <!-- JSON 配置编辑器 -->
-      <div class="setting-section">
-        <h3>配置文件 (JSON)</h3>
+      <el-card class="setting-section">
+        <template #header>
+          <div class="card-header">
+            <h3>配置文件 (JSON)</h3>
+          </div>
+        </template>
         <p class="hint">直接编辑下方的 JSON 配置来修改布局和小组件。</p>
-        <textarea
+        <el-input
           v-model="configJson"
+          type="textarea"
+          :rows="15"
           class="json-editor"
           spellcheck="false"
           :class="{ 'error': jsonError }"
-        ></textarea>
+        />
         <div v-if="jsonError" class="error-message">{{ jsonError }}</div>
-      </div>
-    </div>
+      </el-card>
+    </el-main>
 
-    <div class="settings-footer">
-      <button class="btn btn-secondary" @click="resetConfig">重置更改</button>
-      <button class="btn btn-primary" @click="saveSettings" :disabled="!!jsonError">保存配置</button>
-    </div>
-  </div>
+    <el-footer class="settings-footer">
+      <el-button @click="resetConfig">重置更改</el-button>
+      <el-button type="primary" @click="saveSettings" :disabled="!!jsonError">保存配置</el-button>
+    </el-footer>
+  </el-container>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
+import { ElMessage } from 'element-plus'
 
 const store = useSidebarStore()
 const appVersion = ref('')
@@ -90,18 +114,100 @@ const saveSettings = async () => {
   try {
     const newConfig = JSON.parse(configJson.value)
     await store.saveConfig(newConfig)
-    alert('配置已保存！')
+    ElMessage.success('配置已保存！')
   } catch (e) {
     console.error('保存失败', e)
-    alert('保存失败，请检查控制台日志。')
+    ElMessage.error('保存失败，请检查控制台日志。')
   }
+}
+
+// 辅助函数：向配置中添加 Widget
+const addWidgetToConfig = (widget: any) => {
+  try {
+    const currentConfig = JSON.parse(configJson.value)
+    if (!currentConfig.widgets) {
+      currentConfig.widgets = []
+    }
+    currentConfig.widgets.push(widget)
+    configJson.value = JSON.stringify(currentConfig, null, 2)
+    ElMessage.success('组件已添加到配置，请点击保存生效。')
+  } catch (e) {
+    ElMessage.error('当前 JSON 格式错误，无法添加组件。')
+  }
+}
+
+const addLauncherWidget = () => {
+  addWidgetToConfig({
+    type: 'launcher',
+    layout: 'grid',
+    targets: [
+      { name: '示例应用', target: 'notepad.exe' }
+    ]
+  })
+}
+
+const addVolumeWidget = () => {
+  addWidgetToConfig({
+    type: 'volume_slider'
+  })
+}
+
+const addFilesWidget = () => {
+  addWidgetToConfig({
+    type: 'files',
+    folder_path: 'C:\\Users\\Public\\Desktop',
+    max_count: 10
+  })
+}
+
+const addDragToLaunchWidget = () => {
+  addWidgetToConfig({
+    type: 'drag_to_launch',
+    command_template: '"{path}"'
+  })
+}
+
+const addClassIslandWidget = () => {
+  addWidgetToConfig({
+    type: 'launcher',
+    layout: 'grid',
+    targets: [
+      {
+        name: 'ClassIsland',
+        target: 'classisland://app',
+        icon: 'classisland.exe' // 假设有这个图标，或者让用户自己配置
+      },
+      {
+        name: 'CI 换课',
+        target: 'classisland://app/class-swap',
+        icon: 'classisland.exe'
+      }
+    ]
+  })
+}
+
+const addSecRandomWidget = () => {
+  addWidgetToConfig({
+    type: 'launcher',
+    layout: 'grid',
+    targets: [
+      {
+        name: 'SecRandom',
+        target: 'secrandom://app',
+        icon: 'secrandom.exe'
+      },
+      {
+        name: '随机点名',
+        target: 'secrandom://pumping',
+        icon: 'secrandom.exe'
+      }
+    ]
+  })
 }
 </script>
 
 <style scoped>
 .settings-container {
-  display: flex;
-  flex-direction: column;
   height: 100vh;
   background: #f9fafb;
   color: #1f2937;
@@ -109,12 +215,12 @@ const saveSettings = async () => {
 }
 
 .settings-header {
-  padding: 20px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 20px;
 }
 
 .settings-header h2 {
@@ -128,16 +234,11 @@ const saveSettings = async () => {
 }
 
 .settings-content {
-  flex: 1;
   padding: 20px;
   overflow-y: auto;
 }
 
 .setting-item {
-  background: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
   margin-bottom: 20px;
 }
 
@@ -145,13 +246,11 @@ const saveSettings = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
   font-weight: 500;
 }
 
 .setting-section h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
+  margin: 0;
   font-size: 16px;
 }
 
@@ -162,25 +261,12 @@ const saveSettings = async () => {
 }
 
 .json-editor {
-  width: 100%;
-  height: 300px;
   font-family: monospace;
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  resize: vertical;
   font-size: 13px;
   line-height: 1.4;
-  box-sizing: border-box;
 }
 
-.json-editor:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.json-editor.error {
+.json-editor.error :deep(.el-textarea__inner) {
   border-color: #ef4444;
 }
 
@@ -191,45 +277,17 @@ const saveSettings = async () => {
 }
 
 .settings-footer {
-  padding: 20px;
   background: #fff;
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.add-widget-buttons {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-}
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s;
-}
-
-.btn-secondary {
-  background: #fff;
-  border-color: #d1d5db;
-  color: #374151;
-}
-
-.btn-secondary:hover {
-  background: #f3f4f6;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: #fff;
-}
-
-.btn-primary:hover {
-  background: #2563eb;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 </style>
