@@ -1,3 +1,6 @@
+@import "tailwindcss";
+@import './base.css';
+
 /* 全局样式 */
 :root {
     --sidebar-duration: 0.5s;
@@ -31,7 +34,7 @@ html {
 }
 
 /* 侧边栏包装器，用于处理鼠标交互区域 */
-#sidebar-wrapper {
+.sidebar-wrapper {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -44,7 +47,7 @@ html {
 }
 
 /* 侧边栏主体 */
-#sidebar {
+.sidebar-container {
     width: 4px;
     height: 64px;
     /* 核心：防止在容器宽度变小时被挤压 */
@@ -67,7 +70,7 @@ html {
 }
 
 /* 使用伪元素处理渐变色，方便通过 opacity 做平滑动画 */
-#sidebar::before {
+.sidebar-container::before {
     content: "";
     position: absolute;
     top: 0;
@@ -82,12 +85,12 @@ html {
 }
 
 /* 展开时隐藏渐变伪元素 */
-.expanded #sidebar::before {
+.expanded .sidebar-container::before {
     opacity: 0;
 }
 
 /* 确保内容在伪元素之上 */
-#content {
+.widgets-container {
     position: relative;
     z-index: 1;
     opacity: 0;
@@ -102,6 +105,23 @@ html {
     box-sizing: border-box;
     /* 未展开时禁用交互 */
     pointer-events: none;
+    /* 允许内容滚动 */
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.widgets-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.widgets-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.widgets-container::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 /* 设置按钮样式 */
@@ -135,16 +155,13 @@ html {
     transform: rotate(90deg) scale(0.9);
 }
 
-
-
-
 /* 展开状态下的内容显示 */
 /* 展开状态下的包装器宽度 */
-.expanded #sidebar-wrapper {
+.expanded .sidebar-wrapper {
     width: 100%;
 }
 
-.expanded #content {
+.expanded .widgets-container {
     opacity: 1;
     pointer-events: auto;
     /* 展开时：内容延迟显示，等待侧边栏展开到一定程度 */
