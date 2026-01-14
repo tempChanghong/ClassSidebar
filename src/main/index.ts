@@ -153,20 +153,58 @@ function registerIpc(): void {
 
     // 启动应用
     ipcMain.on('launch-app', async (_: IpcMainEvent, target: string, args: string[]) => {
+        console.log(`[launch-app] Request: target="${target}", args=${JSON.stringify(args)}`)
+
+        // 处理 URI
         if (target.includes('://')) {
+            console.log('[launch-app] Opening URI')
             shell.openExternal(target).catch((e) => console.error('打开 URI 失败:', e))
             return
         }
 
-        // 如果没有参数，优先尝试用默认关联程序打开
-        if (!args || args.length === 0) {
+        const lowerTarget = target.toLowerCase()
+        // 移除可能的 .exe 后缀进行比较
+        const baseTarget = lowerTarget.replace('.exe', '')
+        const systemCommands = ['explorer', 'notepad', 'calc', 'cmd']
+
+        try {
+            // 1. 系统命令直接 spawn
+            if (systemCommands.includes(baseTarget)) {
+                console.log('[launch-app] Detected system command, using spawn')
+                // Windows 上某些命令可能需要 shell: true 才能正确解析
+                const child = spawn(target, args || [], {
+                    detached: true,
+                    stdio: 'ignore',
+                    shell: process.platform === 'win32'
+                })
+                child.unref()
+                child.on('error', (err) => console.error('[launch-app] Spawn error:', err))
+                return
+            }
+
+            // 2. 如果有参数，直接 spawn (openPath 不支持参数)
+            if (args && args.length > 0) {
+                console.log('[launch-app] Has args, using spawn')
+                const child = spawn(target, args, { detached: true, stdio: 'ignore' })
+                child.unref()
+                child.on('error', (err) => console.error('[launch-app] Spawn error:', err))
+                return
+            }
+
+            // 3. 普通文件尝试 openPath
+            console.log('[launch-app] Trying shell.openPath')
             const error = await shell.openPath(target)
             if (error) {
-                console.error('shell.openPath 失败, 尝试 spawn:', error)
-                spawn(target, args || [], { detached: true, stdio: 'ignore' }).unref()
+                console.warn(`shell.openPath 失败 (${error}), 尝试 spawn 回退...`)
+                // 4. 回退机制：尝试作为可执行文件运行
+                const child = spawn(target, [], { detached: true, stdio: 'ignore' })
+                child.unref()
+                child.on('error', (err) => console.error('[launch-app] Fallback spawn error:', err))
+            } else {
+                console.log('[launch-app] shell.openPath success')
             }
-        } else {
-            spawn(target, args, { detached: true, stdio: 'ignore' }).unref()
+        } catch (e) {
+            console.error('[launch-app] Unexpected error:', e)
         }
     })
 

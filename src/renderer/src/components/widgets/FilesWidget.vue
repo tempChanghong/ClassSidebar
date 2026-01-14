@@ -69,6 +69,8 @@ onMounted(loadFiles)
 watch(() => props.config.folder_path, loadFiles)
 
 const openFile = (file: FileItem) => {
+  console.log('[FilesWidget] Opening file:', file.path)
+  // 确保传递的是普通数组
   window.electronAPI.launchApp(file.path, [])
 }
 

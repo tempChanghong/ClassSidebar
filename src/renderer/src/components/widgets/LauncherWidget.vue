@@ -54,8 +54,15 @@ onMounted(loadIcon)
 watch(() => props.item, loadIcon, { deep: true })
 
 const handleClick = () => {
+  console.log('[LauncherWidget] Clicked:', props.item)
   if (props.item.target) {
-    window.electronAPI.launchApp(props.item.target, props.item.args || [])
+    // 关键修改：将 Proxy 对象转换为普通数组，防止 IPC 克隆错误
+    const args = props.item.args ? JSON.parse(JSON.stringify(props.item.args)) : []
+
+    console.log('[LauncherWidget] Invoking launchApp:', props.item.target, args)
+    window.electronAPI.launchApp(props.item.target, args)
+  } else {
+    console.warn('[LauncherWidget] No target defined for item')
   }
 }
 
