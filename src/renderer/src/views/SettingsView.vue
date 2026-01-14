@@ -1,90 +1,182 @@
 <template>
-  <el-container class="settings-container">
-    <el-header class="settings-header">
-      <h2>设置</h2>
-      <div class="version-info">v{{ appVersion }}</div>
-    </el-header>
+  <SettingsLayout
+    :tabs="tabs"
+    :current-tab="currentTab"
+    :version="appVersion"
+    @update:tab="currentTab = $event"
+  >
+    <!-- Actions Slot (Top Right) -->
+    <template #actions>
+      <button
+        v-if="currentTab === 'widgets'"
+        @click="saveJsonConfig"
+        class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm transition-colors"
+        :disabled="!!jsonError"
+        :class="{ 'opacity-50 cursor-not-allowed': !!jsonError }"
+      >
+        <Save class="w-4 h-4" />
+        保存配置
+      </button>
+    </template>
 
-    <el-main class="settings-content">
-      <!-- 开机自启设置 -->
-      <el-card class="setting-item">
-        <div class="setting-label">
-          <span>开机自启</span>
-          <el-switch v-model="autoLaunch" @change="toggleAutoLaunch" />
-        </div>
-      </el-card>
+    <!-- Tab: General -->
+    <div v-if="currentTab === 'general'" class="space-y-6">
+      <SettingsSection title="系统集成">
+        <SettingsRow label="开机自启" description="随系统启动自动运行 ClassSidebar">
+          <BaseSwitch v-model="autoLaunch" @update:model-value="toggleAutoLaunch" />
+        </SettingsRow>
+      </SettingsSection>
 
-      <!-- 快捷添加组件 -->
-      <el-card class="setting-item">
-        <template #header>
-          <div class="card-header">
-            <h3>添加组件</h3>
+      <SettingsSection title="调试工具">
+        <SettingsRow label="测试工具路径" description="指定用于测试启动功能的外部程序路径">
+          <div class="flex items-center gap-2 w-64">
+            <BaseInput v-model="testPath" placeholder="e.g. notepad.exe" />
+            <button
+              @click="testLaunch"
+              class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title="测试启动"
+            >
+              <Play class="w-4 h-4" />
+            </button>
           </div>
-        </template>
-        <div class="add-widget-buttons">
-          <el-button @click="addLauncherWidget">添加启动器</el-button>
-          <el-button @click="addVolumeWidget">添加音量条</el-button>
-          <el-button @click="addFilesWidget">添加文件夹</el-button>
-          <el-button @click="addDragToLaunchWidget">添加拖拽启动</el-button>
-          <el-button @click="addClassIslandWidget">添加 ClassIsland</el-button>
-          <el-button @click="addSecRandomWidget">添加 SecRandom</el-button>
+        </SettingsRow>
+        <SettingsRow label="重置应用" description="清除所有本地配置并恢复默认状态">
+          <button
+            @click="resetConfig"
+            class="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors border border-red-200"
+          >
+            重置所有设置
+          </button>
+        </SettingsRow>
+      </SettingsSection>
+    </div>
+
+    <!-- Tab: Appearance (Widgets) -->
+    <div v-else-if="currentTab === 'widgets'" class="space-y-6">
+      <SettingsSection title="快速添加组件" description="点击下方按钮将预设组件添加到侧边栏">
+        <div class="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <button
+            v-for="action in widgetActions"
+            :key="action.label"
+            @click="action.handler"
+            class="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-300 hover:shadow-md transition-all duration-200 group"
+          >
+            <component :is="action.icon" class="w-6 h-6 mb-2 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">{{ action.label }}</span>
+          </button>
         </div>
-      </el-card>
+      </SettingsSection>
 
-      <!-- JSON 配置编辑器 -->
-      <el-card class="setting-section">
-        <template #header>
-          <div class="card-header">
-            <h3>配置文件 (JSON)</h3>
+      <SettingsSection title="高级配置 (JSON)" description="直接编辑配置文件以获得完全控制权">
+        <div class="relative border-t border-slate-100">
+          <textarea
+            v-model="configJson"
+            class="w-full h-[400px] p-4 font-mono text-xs leading-relaxed bg-slate-900 text-slate-300 focus:outline-none resize-y"
+            spellcheck="false"
+          ></textarea>
+          <div
+            v-if="jsonError"
+            class="absolute bottom-4 right-4 px-3 py-1.5 bg-red-500/90 text-white text-xs rounded shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2"
+          >
+            {{ jsonError }}
           </div>
-        </template>
-        <p class="hint">直接编辑下方的 JSON 配置来修改布局和小组件。</p>
-        <el-input
-          v-model="configJson"
-          type="textarea"
-          :rows="15"
-          class="json-editor"
-          spellcheck="false"
-          :class="{ 'error': jsonError }"
-        />
-        <div v-if="jsonError" class="error-message">{{ jsonError }}</div>
-      </el-card>
-    </el-main>
+        </div>
+      </SettingsSection>
+    </div>
 
-    <el-footer class="settings-footer">
-      <el-button @click="resetConfig">重置更改</el-button>
-      <el-button type="primary" @click="saveSettings" :disabled="!!jsonError">保存配置</el-button>
-    </el-footer>
-  </el-container>
+    <!-- Tab: About -->
+    <div v-else-if="currentTab === 'about'" class="space-y-6">
+      <div class="flex flex-col items-center justify-center py-12 text-center">
+        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center mb-6 text-white">
+          <Sidebar class="w-10 h-10" />
+        </div>
+        <h2 class="text-2xl font-bold text-slate-900">ClassSidebar</h2>
+        <p class="text-slate-500 mt-2">专为现代化课堂设计的智能侧边栏</p>
+        <div class="mt-8 flex items-center gap-4">
+          <div class="px-4 py-1.5 bg-slate-100 rounded-full text-xs font-medium text-slate-600">
+            v{{ appVersion }}
+          </div>
+          <div class="px-4 py-1.5 bg-green-100 rounded-full text-xs font-medium text-green-700">
+            Stable Channel
+          </div>
+        </div>
+      </div>
+
+      <SettingsSection title="开发团队">
+        <SettingsRow label="tempChanghong" description="核心开发与维护">
+          <a href="https://github.com/tempChanghong" target="_blank" class="text-sm text-blue-600 hover:underline">GitHub</a>
+        </SettingsRow>
+      </SettingsSection>
+    </div>
+
+  </SettingsLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { useSidebarStore } from '../stores/sidebarStore'
 import { ElMessage } from 'element-plus'
+import {
+  Settings,
+  LayoutGrid,
+  Info,
+  Play,
+  Save,
+  Sidebar,
+  AppWindow,
+  Volume2,
+  FolderOpen,
+  MousePointerClick,
+  GraduationCap,
+  Shuffle
+} from 'lucide-vue-next'
+import SettingsLayout from '../components/ui/SettingsLayout.vue'
+import SettingsSection from '../components/ui/SettingsSection.vue'
+import SettingsRow from '../components/ui/SettingsRow.vue'
+import BaseSwitch from '../components/ui/BaseSwitch.vue'
+import BaseInput from '../components/ui/BaseInput.vue'
+import { useConfig } from '../composables/useConfig'
 
-const store = useSidebarStore()
+// --- State & Config ---
+const { config, saveConfig } = useConfig()
+const currentTab = ref('general')
 const appVersion = ref('')
 const autoLaunch = ref(false)
+const testPath = ref('notepad.exe')
 const configJson = ref('')
 const jsonError = ref('')
 
-onMounted(async () => {
-  // 获取版本号
-  appVersion.value = await window.electronAPI.getAppVersion()
+// --- Tabs Definition ---
+const tabs = [
+  { id: 'general', label: '通用', icon: Settings },
+  { id: 'widgets', label: '组件与外观', icon: LayoutGrid },
+  { id: 'about', label: '关于', icon: Info }
+]
 
-  // 获取开机自启状态
+// --- Lifecycle ---
+onMounted(async () => {
+  appVersion.value = await window.electronAPI.getAppVersion()
   const settings = await window.electronAPI.getLoginItemSettings()
   autoLaunch.value = settings.openAtLogin
 
-  // 加载配置
-  await store.loadConfig()
-  if (store.config) {
-    configJson.value = JSON.stringify(store.config, null, 2)
+  if (config.value) {
+    configJson.value = JSON.stringify(config.value, null, 2)
   }
 })
 
-// 监听 JSON 变化并校验
+// --- Watchers ---
+watch(config, (newVal) => {
+  if (newVal) {
+    try {
+      const currentObj = JSON.parse(configJson.value)
+      if (JSON.stringify(currentObj) !== JSON.stringify(newVal)) {
+        configJson.value = JSON.stringify(newVal, null, 2)
+      }
+    } catch (e) {
+      configJson.value = JSON.stringify(newVal, null, 2)
+    }
+  }
+}, { deep: true })
+
 watch(configJson, (newVal) => {
   try {
     JSON.parse(newVal)
@@ -94,200 +186,105 @@ watch(configJson, (newVal) => {
   }
 })
 
-const toggleAutoLaunch = async () => {
+// --- Actions ---
+const toggleAutoLaunch = async (val: boolean) => {
   await window.electronAPI.setLoginItemSettings({
-    openAtLogin: autoLaunch.value,
-    path: process.execPath // Electron 会自动处理，这里通常不需要显式传 path，除非有特殊需求
+    openAtLogin: val,
+    path: process.execPath
   })
+  ElMessage.success(`开机自启已${val ? '开启' : '关闭'}`)
+}
+
+const testLaunch = () => {
+  if (!testPath.value) return
+  window.electronAPI.launchApp(testPath.value, [])
+  ElMessage.info(`尝试启动: ${testPath.value}`)
 }
 
 const resetConfig = () => {
-  if (store.config) {
-    configJson.value = JSON.stringify(store.config, null, 2)
-    jsonError.value = ''
-  }
+  ElMessage.warning('重置功能暂未完全实现')
 }
 
-const saveSettings = async () => {
+const saveJsonConfig = async () => {
   if (jsonError.value) return
-
   try {
     const newConfig = JSON.parse(configJson.value)
-    await store.saveConfig(newConfig)
-    ElMessage.success('配置已保存！')
+    await saveConfig(newConfig)
+    ElMessage.success('配置已保存')
   } catch (e) {
-    console.error('保存失败', e)
-    ElMessage.error('保存失败，请检查控制台日志。')
+    ElMessage.error('保存失败')
   }
 }
 
-// 辅助函数：向配置中添加 Widget
-const addWidgetToConfig = (widget: any) => {
+// --- Widget Helpers ---
+const addWidgetToConfig = async (widget: any) => {
   try {
-    const currentConfig = JSON.parse(configJson.value)
-    if (!currentConfig.widgets) {
-      currentConfig.widgets = []
-    }
+    const currentConfig = config.value ? JSON.parse(JSON.stringify(config.value)) : { widgets: [] }
+    if (!currentConfig.widgets) currentConfig.widgets = []
     currentConfig.widgets.push(widget)
-    configJson.value = JSON.stringify(currentConfig, null, 2)
-    ElMessage.success('组件已添加到配置，请点击保存生效。')
+    await saveConfig(currentConfig)
+    ElMessage.success('组件已添加')
   } catch (e) {
-    ElMessage.error('当前 JSON 格式错误，无法添加组件。')
+    console.error(e)
+    ElMessage.error('添加组件失败')
   }
 }
 
-const addLauncherWidget = () => {
-  addWidgetToConfig({
-    type: 'launcher',
-    layout: 'grid',
-    targets: [
-      { name: '示例应用', target: 'notepad.exe' }
-    ]
-  })
-}
-
-const addVolumeWidget = () => {
-  addWidgetToConfig({
-    type: 'volume_slider'
-  })
-}
-
-const addFilesWidget = () => {
-  addWidgetToConfig({
-    type: 'files',
-    folder_path: 'C:\\Users\\Public\\Desktop',
-    max_count: 10
-  })
-}
-
-const addDragToLaunchWidget = () => {
-  addWidgetToConfig({
-    type: 'drag_to_launch',
-    command_template: '"{path}"'
-  })
-}
-
-const addClassIslandWidget = () => {
-  addWidgetToConfig({
-    type: 'launcher',
-    layout: 'grid',
-    targets: [
-      {
-        name: 'ClassIsland',
-        target: 'classisland://app',
-        icon: 'classisland.exe' // 假设有这个图标，或者让用户自己配置
-      },
-      {
-        name: 'CI 换课',
-        target: 'classisland://app/class-swap',
-        icon: 'classisland.exe'
-      }
-    ]
-  })
-}
-
-const addSecRandomWidget = () => {
-  addWidgetToConfig({
-    type: 'launcher',
-    layout: 'grid',
-    targets: [
-      {
-        name: 'SecRandom',
-        target: 'secrandom://app',
-        icon: 'secrandom.exe'
-      },
-      {
-        name: '随机点名',
-        target: 'secrandom://pumping',
-        icon: 'secrandom.exe'
-      }
-    ]
-  })
-}
+const widgetActions = [
+  {
+    label: '启动器',
+    icon: AppWindow,
+    handler: () => addWidgetToConfig({
+      type: 'launcher',
+      layout: 'grid',
+      targets: [{ name: '示例应用', target: 'notepad.exe' }]
+    })
+  },
+  {
+    label: '音量条',
+    icon: Volume2,
+    handler: () => addWidgetToConfig({ type: 'volume_slider' })
+  },
+  {
+    label: '文件夹',
+    icon: FolderOpen,
+    handler: () => addWidgetToConfig({
+      type: 'files',
+      folder_path: 'C:\\Users\\Public\\Desktop',
+      max_count: 10
+    })
+  },
+  {
+    label: '拖拽启动',
+    icon: MousePointerClick,
+    handler: () => addWidgetToConfig({
+      type: 'drag_to_launch',
+      command_template: '"{path}"'
+    })
+  },
+  {
+    label: 'ClassIsland',
+    icon: GraduationCap,
+    handler: () => addWidgetToConfig({
+      type: 'launcher',
+      layout: 'grid',
+      targets: [
+        { name: 'ClassIsland', target: 'classisland://app', icon: 'classisland.exe' },
+        { name: 'CI 换课', target: 'classisland://app/class-swap', icon: 'classisland.exe' }
+      ]
+    })
+  },
+  {
+    label: 'SecRandom',
+    icon: Shuffle,
+    handler: () => addWidgetToConfig({
+      type: 'launcher',
+      layout: 'grid',
+      targets: [
+        { name: 'SecRandom', target: 'secrandom://app', icon: 'secrandom.exe' },
+        { name: '随机点名', target: 'secrandom://pumping', icon: 'secrandom.exe' }
+      ]
+    })
+  }
+]
 </script>
-
-<style scoped>
-.settings-container {
-  height: 100vh;
-  background: #f9fafb;
-  color: #1f2937;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-.settings-header {
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.settings-header h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.version-info {
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.settings-content {
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.setting-item {
-  margin-bottom: 20px;
-}
-
-.setting-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 500;
-}
-
-.setting-section h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.hint {
-  margin: 0 0 10px 0;
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.json-editor {
-  font-family: monospace;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.json-editor.error :deep(.el-textarea__inner) {
-  border-color: #ef4444;
-}
-
-.error-message {
-  color: #ef4444;
-  font-size: 13px;
-  margin-top: 5px;
-}
-
-.settings-footer {
-  background: #fff;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 0 20px;
-}
-
-.add-widget-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-</style>
