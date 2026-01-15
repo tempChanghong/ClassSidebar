@@ -1,4 +1,4 @@
-import Store from 'electron-store'
+import Store, { Schema } from 'electron-store'
 
 interface WidgetConfig {
     type: string
@@ -17,7 +17,7 @@ export interface AppSchema {
     }
 }
 
-const schema: any = {
+const schema: Schema<AppSchema> = {
     widgets: {
         type: 'array',
         default: [],

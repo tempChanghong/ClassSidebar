@@ -13,7 +13,7 @@
       <div class="widgets-container">
         <h2>Sidebar</h2>
         <button class="settings-button" @click="openSettings" title="设置">
-          ⚙️
+          <Settings class="w-4 h-4" />
         </button>
 
         <div id="widget-container">
@@ -34,6 +34,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 import WidgetHost from '../components/widgets/WidgetHost.vue'
+import { Settings } from 'lucide-vue-next'
 
 const store = useSidebarStore()
 const wrapperRef = ref<HTMLElement | null>(null)

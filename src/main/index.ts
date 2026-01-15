@@ -449,9 +449,10 @@ function registerIpc(): void {
             sidebarWindow.win?.webContents.send('config-updated', store.store)
 
             return { success: true }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('添加快捷方式失败:', err)
-            return { success: false, error: err.message }
+            const message = err instanceof Error ? err.message : 'An unknown error occurred'
+            return { success: false, error: message }
         }
     })
 }

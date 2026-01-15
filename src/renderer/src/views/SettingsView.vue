@@ -181,8 +181,8 @@ watch(configJson, (newVal) => {
   try {
     JSON.parse(newVal)
     jsonError.value = ''
-  } catch (e: any) {
-    jsonError.value = e.message
+  } catch (e: unknown) {
+    jsonError.value = e instanceof Error ? e.message : 'Invalid JSON format'
   }
 })
 
