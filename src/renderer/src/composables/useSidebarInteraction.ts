@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUnmounted, Ref } from 'vue'
+import { computed, watch, onMounted, onUnmounted, Ref } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 
 export function useSidebarInteraction(

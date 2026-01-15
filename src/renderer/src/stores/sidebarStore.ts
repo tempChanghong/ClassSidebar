@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { AppSchema } from '../../../main/store'
+import type { AppSchema, WidgetConfig } from '../../../main/store'
 
 // 扩展 AppSchema 以包含 displayBounds，因为后端返回的 config 包含此字段
 interface ExtendedAppSchema extends AppSchema {
@@ -31,7 +31,6 @@ export const useSidebarStore = defineStore('sidebar', () => {
                 if (typeof loadedConfig.transforms.height === 'number') {
                     sidebarHeight.value = loadedConfig.transforms.height
                 }
-                // 应用其他初始样式设置（如透明度、动画速度）通常在组件层或通过 CSS 变量绑定处理
             }
         } catch (err) {
             console.error('加载配置失败:', err)
@@ -64,14 +63,58 @@ export const useSidebarStore = defineStore('sidebar', () => {
     const saveConfig = async (newConfig: AppSchema) => {
         try {
             await window.electronAPI.saveConfig(newConfig)
-            // 保存后更新本地状态，注意这里可能需要重新获取带 displayBounds 的完整配置
-            // 或者简单地合并
             if (config.value) {
                 config.value = { ...config.value, ...newConfig }
             }
         } catch (err) {
             console.error('保存配置失败:', err)
         }
+    }
+
+    // Widget Management Actions
+    const addWidget = async (widget: WidgetConfig) => {
+        if (!config.value) return
+        const newWidgets = [...config.value.widgets, widget]
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
+    }
+
+    const updateWidget = async (index: number, widget: WidgetConfig) => {
+        if (!config.value) return
+        const newWidgets = [...config.value.widgets]
+        if (index >= 0 && index < newWidgets.length) {
+            newWidgets[index] = widget
+            const newConfig = { ...config.value, widgets: newWidgets }
+            await saveConfig(newConfig)
+        }
+    }
+
+    const removeWidget = async (index: number) => {
+        if (!config.value) return
+        const newWidgets = [...config.value.widgets]
+        if (index >= 0 && index < newWidgets.length) {
+            newWidgets.splice(index, 1)
+            const newConfig = { ...config.value, widgets: newWidgets }
+            await saveConfig(newConfig)
+        }
+    }
+
+    const moveWidget = async (index: number, direction: 'up' | 'down') => {
+        if (!config.value) return
+        const newWidgets = [...config.value.widgets]
+        if (direction === 'up' && index > 0) {
+            const temp = newWidgets[index]
+            newWidgets[index] = newWidgets[index - 1]
+            newWidgets[index - 1] = temp
+        } else if (direction === 'down' && index < newWidgets.length - 1) {
+            const temp = newWidgets[index]
+            newWidgets[index] = newWidgets[index + 1]
+            newWidgets[index + 1] = temp
+        } else {
+            return // No change
+        }
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
     }
 
     return {
@@ -83,6 +126,10 @@ export const useSidebarStore = defineStore('sidebar', () => {
         loadConfig,
         setExpanded,
         updateDimensions,
-        saveConfig
+        saveConfig,
+        addWidget,
+        updateWidget,
+        removeWidget,
+        moveWidget
     }
 })

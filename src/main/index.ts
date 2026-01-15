@@ -208,6 +208,15 @@ function registerIpc(): void {
         }
     })
 
+    // 打开外部链接 (新增)
+    ipcMain.handle('open-external', async (_: IpcMainInvokeEvent, url: string) => {
+        try {
+            await shell.openExternal(url)
+        } catch (e) {
+            console.error('Failed to open external URL:', url, e)
+        }
+    })
+
     // 打开设置窗口
     ipcMain.on('open-settings', () => {
         createSettingsWindow()

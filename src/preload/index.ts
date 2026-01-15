@@ -51,6 +51,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 执行任意命令
     executeCommand: (command: string): void => ipcRenderer.send('execute-command', command),
 
+    // 打开外部链接 (新增)
+    openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url),
+
     // 获取文件路径 (解决 Context Isolation 导致 file.path 为空的问题)
     getFilePath: (file: File): string => {
         if (webUtils && webUtils.getPathForFile) {

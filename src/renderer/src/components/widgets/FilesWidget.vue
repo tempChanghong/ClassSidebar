@@ -48,7 +48,10 @@ const loadFiles = async () => {
     const filesWithIcons = await Promise.all(fileList.map(async (f: any) => {
       let icon = ''
       try {
-        icon = await window.electronAPI.getFileIcon(f.path)
+        const iconResult = await window.electronAPI.getFileIcon(f.path)
+        if (iconResult) {
+          icon = iconResult
+        }
       } catch (e) {
         // ignore icon error
       }
