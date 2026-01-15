@@ -376,23 +376,25 @@ function registerIpc(): void {
                     return []
                 }
 
-                const files = fs.readdirSync(resolvedPath)
+                // 替换为异步 API
+                const files = await fs.promises.readdir(resolvedPath)
 
-                const fileStats = files
-                    .map((file) => {
-                        const fullPath = path.join(resolvedPath, file)
-                        try {
-                            const stats = fs.statSync(fullPath)
-                            return {
-                                name: file,
-                                path: fullPath,
-                                mtime: stats.mtime,
-                                isDirectory: stats.isDirectory()
-                            }
-                        } catch (e) {
-                            return null
+                const fileStatsPromises = files.map(async (file) => {
+                    const fullPath = path.join(resolvedPath, file)
+                    try {
+                        const stats = await fs.promises.stat(fullPath)
+                        return {
+                            name: file,
+                            path: fullPath,
+                            mtime: stats.mtime,
+                            isDirectory: stats.isDirectory()
                         }
-                    })
+                    } catch (e) {
+                        return null
+                    }
+                })
+
+                const fileStats = (await Promise.all(fileStatsPromises))
                     .filter(
                         (f) =>
                             f !== null &&
