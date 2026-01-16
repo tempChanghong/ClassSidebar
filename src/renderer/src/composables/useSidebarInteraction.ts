@@ -15,7 +15,7 @@ export function useSidebarInteraction(
   const THRESHOLD = 60
   const VELOCITY_THRESHOLD = 0.3
 
-  // 拖拽相关状态
+  // 拖拽相关状态 (水平展开)
   let startX = 0
   let lastX = 0
   let lastTime = 0
@@ -24,6 +24,10 @@ export function useSidebarInteraction(
   let animationId: number | null = null
   let startTimeStamp = 0
   let lastResizeTime = 0
+
+  // 拖拽相关状态 (垂直移动)
+  let isVerticalDragging = false
+  let startY = 0
 
   // 监听配置变化以更新常量
   watch(
@@ -35,11 +39,8 @@ export function useSidebarInteraction(
         
         // 强制刷新尺寸逻辑
         if (!store.isExpanded) {
-          // 收起状态：重置为初始尺寸
           window.electronAPI.resizeWindow(20, START_H + 40)
         } else {
-          // 展开状态：重新计算并应用展开后的尺寸
-          // 这里我们假设展开进度为 1 (完全展开)
           updateWindowSize(1)
         }
       }
@@ -59,7 +60,6 @@ export function useSidebarInteraction(
     const currentRadius = 4 + 12 * p
     const currentMargin = 6 + 6 * p
 
-    // 背景颜色计算
     const gray = Math.floor(156 + (255 - 156) * p)
     const baseOpacity = store.config?.transforms?.opacity ?? 0.95
     const currentOpacity = 0.8 + (baseOpacity - 0.8) * p
@@ -70,12 +70,10 @@ export function useSidebarInteraction(
       borderRadius: `${currentRadius}px`,
       marginLeft: `${currentMargin}px`,
       backgroundColor: `rgba(${gray}, ${gray}, ${gray}, ${currentOpacity})`,
-      // 拖拽或动画时禁用 CSS transition，由 JS 控制
       transition: store.isDragging || animationId ? 'none' : undefined
     }
   })
 
-  // 窗口大小调整逻辑
   function throttledResize(w: number, h: number, y: number) {
     const now = Date.now()
     if (now - lastResizeTime > 16) {
@@ -115,7 +113,6 @@ export function useSidebarInteraction(
     }
   }
 
-  // 监听 store.sidebarWidth 变化来触发窗口调整
   watch(
     () => store.sidebarWidth,
     () => {
@@ -123,7 +120,6 @@ export function useSidebarInteraction(
     }
   )
 
-  // 动画逻辑
   function stopAnimation() {
     if (animationId) {
       cancelAnimationFrame(animationId)
@@ -209,7 +205,6 @@ export function useSidebarInteraction(
     animationId = requestAnimationFrame(animate)
   }
 
-  // 交互事件处理
   function isInteractive(target: EventTarget | null) {
     if (!target || !(target instanceof HTMLElement)) return false
     return (
@@ -217,7 +212,8 @@ export function useSidebarInteraction(
       target.tagName === 'BUTTON' ||
       target.tagName === 'A' ||
       !!target.closest('.launcher-item') ||
-      !!target.closest('.volume-slider-container')
+      !!target.closest('.volume-slider-container') ||
+      !!target.closest('.drag-handle') // 排除拖拽手柄
     )
   }
 
@@ -310,9 +306,37 @@ export function useSidebarInteraction(
     }
   }
 
-  // 鼠标穿透逻辑
+  // --- 垂直拖拽逻辑 ---
+  function onDragHandleMouseDown(e: MouseEvent) {
+    e.stopPropagation() // 防止触发水平拖拽
+    isVerticalDragging = true
+    startY = e.screenY
+    window.electronAPI.setIgnoreMouse(false, true) // 确保鼠标事件被捕获
+  }
+
+  function handleVerticalMove(currentY: number) {
+    if (!isVerticalDragging) return
+    const deltaY = currentY - startY
+    window.electronAPI.moveWindow(deltaY)
+    startY = currentY // 更新基准点，因为窗口已经移动了
+  }
+
+  async function handleVerticalEnd() {
+    if (!isVerticalDragging) return
+    isVerticalDragging = false
+    
+    // 拖拽结束，获取最新位置并保存
+    if (store.config) {
+        const newPosy = await window.electronAPI.getCurrentPosY()
+        // 更新本地 store (不触发 watch，因为我们只更新 posy)
+        store.config.transforms.posy = newPosy
+        // 保存到磁盘
+        await window.electronAPI.saveConfig(store.config)
+    }
+  }
+
   function updateIgnoreMouse(e: MouseEvent) {
-    if (store.isDragging || animationId) {
+    if (store.isDragging || animationId || isVerticalDragging) {
       window.electronAPI.setIgnoreMouse(false, true)
       return
     }
@@ -349,17 +373,25 @@ export function useSidebarInteraction(
     window.electronAPI.setIgnoreMouse(shouldIgnore, true)
   }
 
-  // 全局事件监听
-  const onMouseMove = (e: MouseEvent) => handleMove(e.screenX)
+  const onMouseMove = (e: MouseEvent) => {
+      handleMove(e.screenX)
+      handleVerticalMove(e.screenY)
+  }
+  
+  const onMouseUp = (e: MouseEvent) => {
+      handleEnd(e.screenX)
+      handleVerticalEnd()
+  }
+
   const onTouchMove = (e: TouchEvent) => {
     if (e.touches.length > 0 && store.isDragging) {
       e.preventDefault()
       handleMove(e.touches[0].screenX)
     }
   }
-  const onMouseUp = (e: MouseEvent) => handleEnd(e.screenX)
   const onTouchEnd = (e: TouchEvent) =>
     handleEnd(e.changedTouches.length > 0 ? e.changedTouches[0].screenX : null)
+  
   const onBlur = () => {
     if (store.isExpanded) collapse()
   }
@@ -378,11 +410,6 @@ export function useSidebarInteraction(
     window.addEventListener('mousedown', onMouseDownGlobal)
     window.addEventListener('mousemove', updateIgnoreMouse)
     window.addEventListener('mouseleave', () => window.electronAPI.setIgnoreMouse(true, true))
-    
-    // 初始化时同步一次窗口大小
-    if (store.config?.transforms) {
-        window.electronAPI.resizeWindow(20, START_H + 40)
-    }
   })
 
   onUnmounted(() => {
@@ -398,6 +425,7 @@ export function useSidebarInteraction(
   return {
     sidebarStyle,
     onWrapperMouseDown,
-    onWrapperTouchStart
+    onWrapperTouchStart,
+    onDragHandleMouseDown // 暴露给组件
   }
 }

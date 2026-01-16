@@ -252,6 +252,16 @@ function registerIpc(): void {
         child.unref() // 允许主进程退出而不等待命令结束
     })
 
+    // 移动窗口 (新增)
+    ipcMain.on('move-window', (_: IpcMainEvent, deltaY: number) => {
+        sidebarWindow.move(deltaY)
+    })
+
+    // 获取当前 posy (新增)
+    ipcMain.handle('get-current-posy', () => {
+        return sidebarWindow.getCurrentPosY()
+    })
+
     // 打开设置窗口
     ipcMain.on('open-settings', () => {
         createSettingsWindow()
