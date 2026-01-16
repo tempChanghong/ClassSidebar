@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, toRaw } from 'vue'
 import type { AppSchema, WidgetConfig } from '../../../main/store'
 
 // 扩展 AppSchema 以包含 displayBounds
@@ -57,11 +57,24 @@ export const useSidebarStore = defineStore('sidebar', () => {
         sidebarHeight.value = height
     }
 
-    const saveConfig = async (newConfig: AppSchema) => {
+    const saveConfig = async (newConfig: ExtendedAppSchema) => {
         try {
-            await window.electronAPI.saveConfig(newConfig)
+            // 1. 创建副本并移除 Vue Proxy
+            const configToSave = JSON.parse(JSON.stringify(toRaw(newConfig)))
+            
+            // 2. 移除运行时注入的 displayBounds 属性
+            if ('displayBounds' in configToSave) {
+                delete configToSave.displayBounds
+            }
+
+            // 3. 发送给主进程
+            await window.electronAPI.saveConfig(configToSave)
+            
+            // 4. 更新本地状态 (保留 displayBounds)
             if (config.value) {
-                config.value = { ...config.value, ...newConfig }
+                // 这里我们只更新配置部分，保留原有的 displayBounds
+                const { displayBounds } = config.value
+                config.value = { ...newConfig, displayBounds }
             }
         } catch (err) {
             console.error('保存配置失败:', err)

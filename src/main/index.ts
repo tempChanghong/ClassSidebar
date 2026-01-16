@@ -83,9 +83,23 @@ function registerIpc(): void {
     })
 
     ipcMain.handle('save-config', (_: IpcMainInvokeEvent, newConfig: AppSchema) => {
-        store.store = newConfig
-        sidebarWindow.win?.webContents.send('config-updated', newConfig)
-        return { success: true }
+        console.log('[IPC] save-config called. Widgets count:', newConfig.widgets?.length);
+        try {
+            // 确保没有非法字段
+            if ('displayBounds' in newConfig) {
+                console.warn('[IPC] save-config received displayBounds, stripping it.');
+                delete (newConfig as any).displayBounds;
+            }
+            
+            store.set(newConfig);
+            console.log('[IPC] Config saved successfully.');
+            
+            sidebarWindow.win?.webContents.send('config-updated', newConfig)
+            return { success: true }
+        } catch (error) {
+            console.error('[IPC] Failed to save config:', error);
+            return { success: false, error: (error as Error).message };
+        }
     })
 
     ipcMain.handle('get-volume', (_: IpcMainInvokeEvent) => utils.getSystemVolume())
@@ -95,11 +109,14 @@ function registerIpc(): void {
     ipcMain.handle('get-app-version', () => app.getVersion())
 
     // 打开文件选择对话框
-    ipcMain.handle('open-file-dialog', async () => {
+    ipcMain.handle('open-file-dialog', async (_: IpcMainInvokeEvent, options?: any) => {
         const win = settingsWindow || sidebarWindow.win
         if (!win) return null
+        
+        const properties = options?.properties || ['openFile']
+        
         const result = await dialog.showOpenDialog(win, {
-            properties: ['openFile'],
+            properties: properties,
             filters: [
                 { name: 'Applications', extensions: ['exe', 'lnk', 'url', 'bat', 'cmd'] },
                 { name: 'All Files', extensions: ['*'] }
@@ -218,6 +235,23 @@ function registerIpc(): void {
         }
     })
 
+    // 执行任意命令 (升级版：支持 Shell)
+    ipcMain.on('execute-command', (_: IpcMainEvent, command: string) => {
+        console.log('[execute-command] Executing:', command)
+        // shell: true 是让 cmd/powershell 命令生效的关键
+        const child = spawn(command, [], { 
+            shell: true, 
+            detached: true,
+            stdio: 'ignore' // 忽略 stdio，防止阻塞
+        })
+        
+        child.on('error', (err) => {
+            console.error('[execute-command] Spawn error:', err)
+        })
+        
+        child.unref() // 允许主进程退出而不等待命令结束
+    })
+
     // 打开设置窗口
     ipcMain.on('open-settings', () => {
         createSettingsWindow()
@@ -232,16 +266,6 @@ function registerIpc(): void {
     ipcMain.handle('set-login-item-settings', (_: IpcMainInvokeEvent, settings: any) => {
         app.setLoginItemSettings(settings)
         return app.getLoginItemSettings()
-    })
-
-    // 执行任意命令
-    ipcMain.on('execute-command', (_: IpcMainEvent, command: string) => {
-        const { exec } = require('child_process')
-        exec(command, (error: any) => {
-            if (error) {
-                console.error(`exec error: ${error}`)
-            }
-        })
     })
 
     // 显示右键菜单

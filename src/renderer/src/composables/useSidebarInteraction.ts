@@ -32,6 +32,16 @@ export function useSidebarInteraction(
       if (newConfig?.transforms) {
         if (typeof newConfig.transforms.height === 'number') START_H = newConfig.transforms.height
         if (typeof newConfig.transforms.width === 'number') TARGET_W = newConfig.transforms.width
+        
+        // 强制刷新尺寸逻辑
+        if (!store.isExpanded) {
+          // 收起状态：重置为初始尺寸
+          window.electronAPI.resizeWindow(20, START_H + 40)
+        } else {
+          // 展开状态：重新计算并应用展开后的尺寸
+          // 这里我们假设展开进度为 1 (完全展开)
+          updateWindowSize(1)
+        }
       }
     },
     { deep: true }
@@ -368,6 +378,11 @@ export function useSidebarInteraction(
     window.addEventListener('mousedown', onMouseDownGlobal)
     window.addEventListener('mousemove', updateIgnoreMouse)
     window.addEventListener('mouseleave', () => window.electronAPI.setIgnoreMouse(true, true))
+    
+    // 初始化时同步一次窗口大小
+    if (store.config?.transforms) {
+        window.electronAPI.resizeWindow(20, START_H + 40)
+    }
   })
 
   onUnmounted(() => {

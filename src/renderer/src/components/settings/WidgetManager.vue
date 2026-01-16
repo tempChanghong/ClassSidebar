@@ -407,7 +407,7 @@ const saveWidget = async () => {
 
 // --- File Selection ---
 const selectTarget = async () => {
-  const path = await window.electronAPI.openFileDialog()
+  const path = await window.electronAPI.openFileDialog({ properties: ['openFile'] })
   if (path) {
     form.value.target = path
     // Auto-fill name if empty
@@ -424,12 +424,12 @@ const selectTarget = async () => {
 }
 
 const selectFolder = async () => {
-  const path = await window.electronAPI.openFileDialog() // Note: Needs directory support
+  const path = await window.electronAPI.openFileDialog({ properties: ['openDirectory'] })
   if (path) form.value.folder_path = path
 }
 
 const selectIcon = async () => {
-  const path = await window.electronAPI.openFileDialog()
+  const path = await window.electronAPI.openFileDialog({ properties: ['openFile'] })
   if (path) {
      // For now, we just use the file path as icon source if it's an image,
      // or try to extract icon if it's an exe.

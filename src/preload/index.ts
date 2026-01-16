@@ -27,7 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addShortcut: (filePath: string): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('add-shortcut', filePath),
 
     // 打开文件选择对话框
-    openFileDialog: (): Promise<string | null> => ipcRenderer.invoke('open-file-dialog'),
+    openFileDialog: (options?: any): Promise<string | null> => ipcRenderer.invoke('open-file-dialog', options),
 
     // 显示右键菜单
     showContextMenu: (itemData: any): void => ipcRenderer.send('show-context-menu', itemData),

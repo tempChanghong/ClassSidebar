@@ -1,27 +1,23 @@
 import Store, { Schema } from 'electron-store'
 import { v4 as uuidv4 } from 'uuid'
 
-// --- 基础类型定义 ---
-
+// --- Type Definitions ---
 export type WidgetType = 'launcher' | 'url' | 'command' | 'volume_slider' | 'files' | 'drag_to_launch';
 
 export interface BaseWidget {
     id: string;
     type: WidgetType;
-    name: string; // 显示名称
-    icon?: string; // 图标路径或名称
-    column?: number; // 预留给栅格布局
+    name: string;
+    icon?: string;
+    column?: number;
 }
-
-// --- 具体组件类型 ---
 
 export interface LauncherWidgetConfig extends BaseWidget {
     type: 'launcher';
-    target?: string; // exe 路径 (设为可选以兼容容器模式)
+    target?: string;
     args?: string[];
-    // 兼容旧的 Grid 布局
     layout?: 'grid' | 'vertical'; 
-    targets?: any[];
+    targets?: any[]; 
 }
 
 export interface UrlWidgetConfig extends BaseWidget {
@@ -50,7 +46,6 @@ export interface DragToLaunchWidgetConfig extends BaseWidget {
     command_template?: string;
 }
 
-// --- 联合类型 ---
 export type WidgetConfig = 
     | LauncherWidgetConfig 
     | UrlWidgetConfig 
@@ -71,72 +66,42 @@ export interface AppSchema {
     };
 }
 
-// --- 丰富的默认配置 ---
+// --- Default Configuration ---
 const defaultWidgets: WidgetConfig[] = [
-    {
-        id: 'default-launcher-001',
-        type: 'launcher',
-        name: '文件资源管理器',
-        target: 'explorer.exe',
-        icon: 'folder' // 将由前端解析为 Lucide 图标
-    },
-    {
-        id: 'default-url-001',
-        type: 'url',
-        name: 'Google',
-        url: 'https://www.google.com',
-        icon: 'globe'
-    },
-    {
-        id: 'default-command-001',
-        type: 'command',
-        name: '网络测试',
-        command: 'ping google.com -t',
-        shell: 'cmd',
-        icon: 'terminal'
-    },
-    {
-        id: 'default-system-001',
-        type: 'volume_slider',
-        name: '系统音量',
-        icon: 'volume-2'
-    }
+    { id: 'default-launcher-001', type: 'launcher', name: '文件资源管理器', target: 'explorer.exe', icon: 'folder' },
+    { id: 'default-url-001', type: 'url', name: 'Google', url: 'https://www.google.com', icon: 'globe' },
+    { id: 'default-command-001', type: 'command', name: '网络测试', command: 'ping google.com -t', shell: 'cmd', icon: 'terminal' },
+    { id: 'default-system-001', type: 'volume_slider', name: '系统音量', icon: 'volume-2' }
 ];
 
+const defaultTransforms = {
+    display: 0,
+    height: 64,
+    posy: 0,
+    width: 400,
+    opacity: 0.95,
+    animation_speed: 1
+};
 
-// --- Schema 定义 (用于 electron-store 校验) ---
+// --- Schema Definition ---
 const schema: Schema<AppSchema> = {
     widgets: {
         type: 'array',
-        default: [], // 默认值留空，由迁移逻辑处理
+        // REMOVED default: [], to allow manual control
         items: {
             type: 'object',
-            required: ['id', 'type'],
+            // REMOVED required: ['id'], to allow loading old configs
             properties: {
                 id: { type: 'string' },
                 type: { type: 'string' },
                 name: { type: 'string' },
-                icon: { type: 'string' },
-                // 特定字段
-                target: { type: 'string' },
-                url: { type: 'string' },
-                command: { type: 'string' },
-                shell: { type: 'string' },
-                folder_path: { type: 'string' }
             },
             additionalProperties: true
         }
     },
     transforms: {
         type: 'object',
-        default: {
-            display: 0,
-            height: 64,
-            posy: 0,
-            width: 400,
-            opacity: 0.95,
-            animation_speed: 1
-        },
+        // REMOVED default: {}, to allow manual control
         properties: {
             display: { type: 'number' },
             height: { type: 'number' },
@@ -146,33 +111,44 @@ const schema: Schema<AppSchema> = {
             animation_speed: { type: 'number' }
         }
     }
-}
+};
 
-const store = new Store<AppSchema>({ 
-    schema,
-    // 不在这里设置 defaults，因为我们需要覆盖空数组的情况
-});
+// --- Store Initialization ---
+const store = new Store<AppSchema>({ schema });
 
-// --- 迁移逻辑 ---
-// 在应用启动时检查并填充默认配置
-function initializeDefaults() {
-    const currentWidgets = store.get('widgets');
-    if (!currentWidgets || currentWidgets.length === 0) {
-        console.log('No widgets found, initializing with defaults.');
+// --- Initialization Logic (Force Defaults) ---
+function initDefaults() {
+    const widgets = store.get('widgets');
+    const transforms = store.get('transforms');
+
+    // 1. Check and set default widgets
+    if (!widgets || !Array.isArray(widgets) || widgets.length === 0) {
+        console.log('[Store] Initializing default widgets...');
         store.set('widgets', defaultWidgets);
+    } else {
+        // Migration: Ensure all widgets have IDs
+        let needsUpdate = false;
+        const migratedWidgets = widgets.map(w => {
+            if (!w.id) {
+                needsUpdate = true;
+                return { ...w, id: uuidv4() };
+            }
+            return w;
+        });
+        if (needsUpdate) {
+            console.log('[Store] Migrating widgets: Adding missing IDs...');
+            store.set('widgets', migratedWidgets);
+        }
     }
 
-    // 确保所有 widget 都有 ID (兼容旧配置)
-    const widgetsWithIds = store.get('widgets').map(w => {
-        if (!w.id) {
-            return { ...w, id: uuidv4() };
-        }
-        return w;
-    });
-    store.set('widgets', widgetsWithIds);
+    // 2. Check and set default transforms
+    if (!transforms || typeof transforms !== 'object') {
+        console.log('[Store] Initializing default transforms...');
+        store.set('transforms', defaultTransforms);
+    }
 }
 
-initializeDefaults();
-
+// Execute initialization immediately
+initDefaults();
 
 export default store;
