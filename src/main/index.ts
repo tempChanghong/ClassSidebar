@@ -12,11 +12,12 @@ import {
 } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { sidebarWindow } from './windows/SidebarWindow'
-import store, { AppSchema } from './store'
+import store, { AppSchema, WidgetConfig, LauncherWidgetConfig } from './store'
 import * as utils from './utils'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
+import { v4 as uuidv4 } from 'uuid'
 
 let settingsWindow: BrowserWindow | null = null
 
@@ -316,13 +317,17 @@ function registerIpc(): void {
                     click: () => {
                         // 执行删除逻辑
                         const widgets = store.get('widgets')
+                        // 查找对应的 LauncherWidgetConfig
+                        const launcherWidget = widgets[widgetIndex] as LauncherWidgetConfig | undefined;
+
                         if (
-                            widgets[widgetIndex] &&
-                            widgets[widgetIndex].targets &&
-                            widgets[widgetIndex].targets[itemIndex]
+                            launcherWidget &&
+                            launcherWidget.type === 'launcher' && // 确保是 launcher 类型
+                            launcherWidget.targets &&
+                            launcherWidget.targets[itemIndex]
                         ) {
                             // 从数组中移除
-                            widgets[widgetIndex].targets.splice(itemIndex, 1)
+                            launcherWidget.targets.splice(itemIndex, 1)
 
                             // 保存配置
                             store.set('widgets', widgets)
@@ -427,22 +432,26 @@ function registerIpc(): void {
         }
     )
 
-    // 添加快捷方式
+    // 添加快捷方式 (旧版逻辑，现在应该通过 WidgetManager 添加)
     ipcMain.handle('add-shortcut', async (_: IpcMainInvokeEvent, filePath: string) => {
         try {
             const fileName = path.basename(filePath)
             const name = fileName.replace(/\.[^/.]+$/, '')
 
             const widgets = store.get('widgets', [])
-            let launcherWidget = widgets.find((w) => w.type === 'launcher')
+            // 尝试查找第一个 LauncherWidgetConfig
+            let launcherWidget = widgets.find((w): w is LauncherWidgetConfig => w.type === 'launcher')
 
             if (!launcherWidget) {
+                // 如果没有 LauncherWidget，则创建一个新的
                 launcherWidget = {
+                    id: uuidv4(), // 生成新的 ID
                     type: 'launcher',
+                    name: '我的启动器', // 默认名称
                     layout: 'grid',
                     targets: []
                 }
-                widgets.push(launcherWidget)
+                widgets.push(launcherWidget as WidgetConfig) // 添加到 widgets 数组
             }
 
             if (!Array.isArray(launcherWidget.targets)) {

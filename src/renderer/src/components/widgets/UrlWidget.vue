@@ -3,11 +3,13 @@
     class="launcher-item"
     @click="handleClick"
     @contextmenu.prevent="handleContextMenu"
-    :title="item.name || item.url"
+    :title="item.url"
   >
     <div class="launcher-icon">
-      <img v-if="item.icon" :src="item.icon" alt="icon" />
-      <div v-else class="launcher-icon-placeholder">🌐</div>
+      <img v-if="item.icon" :src="item.icon" alt="icon" class="w-full h-full object-contain" />
+      <div v-else class="launcher-icon-placeholder bg-blue-100 text-blue-500">
+        <Globe class="w-5 h-5" />
+      </div>
     </div>
     <div class="launcher-info">
       <div class="launcher-name">{{ item.name || 'Web Link' }}</div>
@@ -16,26 +18,24 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from 'vue'
-import type { WidgetConfig } from '../../../../main/store'
+import { Globe } from 'lucide-vue-next'
+import type { UrlWidgetConfig } from '../../../../main/store'
 
 const props = defineProps<{
-  item: WidgetConfig
+  item: UrlWidgetConfig
   widgetIndex: number
-  itemIndex: number
 }>()
 
 const handleClick = () => {
   if (props.item.url) {
-    // 使用 launchApp 处理 URL，主进程会自动识别协议并调用 shell.openExternal
-    window.electronAPI.launchApp(props.item.url, [])
+    window.electronAPI.openExternal(props.item.url)
   }
 }
 
 const handleContextMenu = () => {
   window.electronAPI.showContextMenu({
     widgetIndex: props.widgetIndex,
-    itemIndex: props.itemIndex,
+    itemIndex: -1, // -1 表示这是顶层 Widget，不是 Launcher 内部的 item
     target: props.item.url
   })
 }
@@ -48,9 +48,6 @@ const handleContextMenu = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e0f2fe;
-  color: #0ea5e9;
-  font-weight: bold;
-  font-size: 16px;
+  border-radius: 6px;
 }
 </style>

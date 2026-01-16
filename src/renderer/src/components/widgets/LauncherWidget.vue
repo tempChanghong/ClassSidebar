@@ -3,26 +3,32 @@
     class="launcher-item"
     @click="handleClick"
     @contextmenu.prevent="handleContextMenu"
-    :title="item.name"
+    :title="item.name || item.target"
   >
     <div class="launcher-icon">
       <i v-if="isFontAwesome" :class="item.icon"></i>
       <img v-else-if="iconSrc" :src="iconSrc" alt="icon" />
-      <div v-else class="launcher-icon-placeholder">?</div>
+      <div v-else class="launcher-icon-placeholder">
+        <AppWindow class="w-5 h-5 text-slate-400" />
+      </div>
     </div>
     <div class="launcher-info">
-      <div class="launcher-name">{{ item.name }}</div>
+      <div class="launcher-name">{{ item.name || 'Application' }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { AppWindow } from 'lucide-vue-next'
+import type { LauncherWidgetConfig } from '../../../../main/store'
 
+// 注意：这里 item 可能是顶层 WidgetConfig，也可能是旧版 grid 中的子项
+// 为了兼容，我们使用 any 或联合类型，但在新系统中主要作为顶层 Widget 使用
 const props = defineProps<{
-  item: any
+  item: LauncherWidgetConfig | any
   widgetIndex: number
-  itemIndex: number
+  itemIndex?: number // 如果是在 Grid 中，则有此值
 }>()
 
 const iconSrc = ref<string>('')
@@ -35,10 +41,8 @@ const loadIcon = async () => {
   if (isFontAwesome.value) return
 
   if (props.item.icon) {
-    // 如果配置中有图标路径，直接使用
     iconSrc.value = props.item.icon
   } else if (props.item.target) {
-    // 否则尝试获取系统图标
     try {
       const icon = await window.electronAPI.getFileIcon(props.item.target)
       if (icon) {
@@ -54,29 +58,22 @@ onMounted(loadIcon)
 watch(() => props.item, loadIcon, { deep: true })
 
 const handleClick = () => {
-  console.log('[LauncherWidget] Clicked:', props.item)
   if (props.item.target) {
-    // 关键修改：将 Proxy 对象转换为普通数组，防止 IPC 克隆错误
     const args = props.item.args ? JSON.parse(JSON.stringify(props.item.args)) : []
-
-    console.log('[LauncherWidget] Invoking launchApp:', props.item.target, args)
     window.electronAPI.launchApp(props.item.target, args)
-  } else {
-    console.warn('[LauncherWidget] No target defined for item')
   }
 }
 
 const handleContextMenu = () => {
   window.electronAPI.showContextMenu({
     widgetIndex: props.widgetIndex,
-    itemIndex: props.itemIndex,
+    itemIndex: props.itemIndex ?? -1,
     target: props.item.target
   })
 }
 </script>
 
 <style scoped>
-/* 样式已在全局 main.css 中定义，这里只需处理组件特有的微调 */
 .launcher-icon-placeholder {
   width: 100%;
   height: 100%;
@@ -84,7 +81,6 @@ const handleContextMenu = () => {
   align-items: center;
   justify-content: center;
   background: #e5e7eb;
-  color: #9ca3af;
-  font-weight: bold;
+  border-radius: 6px;
 }
 </style>

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { AppSchema, WidgetConfig } from '../../../main/store'
 
-// 扩展 AppSchema 以包含 displayBounds，因为后端返回的 config 包含此字段
+// 扩展 AppSchema 以包含 displayBounds
 interface ExtendedAppSchema extends AppSchema {
     displayBounds?: {
         x: number
@@ -17,8 +17,8 @@ export const useSidebarStore = defineStore('sidebar', () => {
     const config = ref<ExtendedAppSchema | null>(null)
     const isExpanded = ref(false)
     const isDragging = ref(false)
-    const sidebarWidth = ref(4) // START_W
-    const sidebarHeight = ref(64) // START_H
+    const sidebarWidth = ref(4)
+    const sidebarHeight = ref(64)
 
     // 动作
     const loadConfig = async () => {
@@ -26,7 +26,6 @@ export const useSidebarStore = defineStore('sidebar', () => {
             const loadedConfig = await window.electronAPI.getConfig()
             config.value = loadedConfig
             
-            // 初始化尺寸
             if (loadedConfig.transforms) {
                 if (typeof loadedConfig.transforms.height === 'number') {
                     sidebarHeight.value = loadedConfig.transforms.height
@@ -36,13 +35,11 @@ export const useSidebarStore = defineStore('sidebar', () => {
             console.error('加载配置失败:', err)
         }
 
-        // 监听配置更新
         if (window.electronAPI.onConfigUpdated) {
             window.electronAPI.onConfigUpdated((newConfig: ExtendedAppSchema) => {
-                console.log('配置已更新，重新应用...', newConfig)
+                console.log('配置已更新', newConfig)
                 config.value = newConfig
                 if (newConfig.transforms && typeof newConfig.transforms.height === 'number') {
-                    // 只有在未展开时才直接更新高度，避免动画冲突
                     if (!isExpanded.value) {
                         sidebarHeight.value = newConfig.transforms.height
                     }
@@ -71,50 +68,48 @@ export const useSidebarStore = defineStore('sidebar', () => {
         }
     }
 
-    // Widget Management Actions
-    const addWidget = async (widget: WidgetConfig) => {
+    // --- Widget Management Actions ---
+
+    const addWidget = async (widget: Omit<WidgetConfig, 'id'>) => {
         if (!config.value) return
-        const newWidgets = [...config.value.widgets, widget]
+        const newWidget = { ...widget, id: crypto.randomUUID() } as WidgetConfig
+        const newWidgets = [...config.value.widgets, newWidget]
         const newConfig = { ...config.value, widgets: newWidgets }
         await saveConfig(newConfig)
     }
 
-    const updateWidget = async (index: number, widget: WidgetConfig) => {
+    const updateWidget = async (id: string, updates: Partial<WidgetConfig>) => {
         if (!config.value) return
-        const newWidgets = [...config.value.widgets]
-        if (index >= 0 && index < newWidgets.length) {
-            newWidgets[index] = widget
-            const newConfig = { ...config.value, widgets: newWidgets }
-            await saveConfig(newConfig)
-        }
+        const newWidgets = config.value.widgets.map(w => 
+            w.id === id ? { ...w, ...updates } : w
+        ) as WidgetConfig[]
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
     }
 
-    const removeWidget = async (index: number) => {
+    const removeWidget = async (id: string) => {
         if (!config.value) return
-        const newWidgets = [...config.value.widgets]
-        if (index >= 0 && index < newWidgets.length) {
-            newWidgets.splice(index, 1)
-            const newConfig = { ...config.value, widgets: newWidgets }
-            await saveConfig(newConfig)
-        }
+        const newWidgets = config.value.widgets.filter(w => w.id !== id)
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
     }
 
+    const reorderWidget = async (fromIndex: number, toIndex: number) => {
+        if (!config.value) return
+        const newWidgets = [...config.value.widgets]
+        const [moved] = newWidgets.splice(fromIndex, 1)
+        newWidgets.splice(toIndex, 0, moved)
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
+    }
+
+    // 兼容旧版基于索引的操作 (可选，如果不再使用可移除)
     const moveWidget = async (index: number, direction: 'up' | 'down') => {
         if (!config.value) return
-        const newWidgets = [...config.value.widgets]
-        if (direction === 'up' && index > 0) {
-            const temp = newWidgets[index]
-            newWidgets[index] = newWidgets[index - 1]
-            newWidgets[index - 1] = temp
-        } else if (direction === 'down' && index < newWidgets.length - 1) {
-            const temp = newWidgets[index]
-            newWidgets[index] = newWidgets[index + 1]
-            newWidgets[index + 1] = temp
-        } else {
-            return // No change
+        const newIndex = direction === 'up' ? index - 1 : index + 1
+        if (newIndex >= 0 && newIndex < config.value.widgets.length) {
+            await reorderWidget(index, newIndex)
         }
-        const newConfig = { ...config.value, widgets: newWidgets }
-        await saveConfig(newConfig)
     }
 
     return {
@@ -130,6 +125,7 @@ export const useSidebarStore = defineStore('sidebar', () => {
         addWidget,
         updateWidget,
         removeWidget,
+        reorderWidget,
         moveWidget
     }
 })
