@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import type { AppSchema } from '../../main/store'
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -7,27 +8,32 @@ declare module '*.vue' {
   export default component
 }
 
-interface Window {
-  electronAPI: {
-    resizeWindow: (width: number, height: number, y?: number) => void
-    setIgnoreMouse: (ignore: boolean, forward: boolean) => void
-    getConfig: () => Promise<any>
-    saveConfig: (newConfig: any) => Promise<void>
-    onConfigUpdated: (callback: (newConfig: any) => void) => void
-    addShortcut: (filePath: string) => Promise<any>
-    openFileDialog: () => Promise<any>
-    showContextMenu: (itemData: any) => void
-    launchApp: (target: string, args: string[]) => void
-    getFileIcon: (path: string) => Promise<string>
-    setAlwaysOnTop: (flag: boolean) => void
-    getVolume: () => Promise<number>
-    setVolume: (value: number) => void
-    getFilesInFolder: (path: string, maxCount: number) => Promise<any[]>
-    executeCommand: (command: string) => void
-    getFilePath: (file: File) => string
-    getAppVersion: () => Promise<string>
-    getLoginItemSettings: () => Promise<any>
-    setLoginItemSettings: (settings: any) => Promise<void>
-    openSettings: () => void
+// 扩展全局 Window 接口
+declare global {
+  interface Window {
+    electronAPI: {
+      resizeWindow: (width: number, height: number, y?: number) => void
+      setIgnoreMouse: (ignore: boolean, forward: boolean) => void
+      getConfig: () => Promise<AppSchema>
+      saveConfig: (newConfig: AppSchema) => Promise<{ success: boolean }>
+      onConfigUpdated: (callback: (newConfig: AppSchema) => void) => void
+      addShortcut: (filePath: string) => Promise<{ success: boolean; error?: string }>
+      // 更新 openFileDialog 签名，允许传入 options
+      openFileDialog: (options?: any) => Promise<string | null>
+      showContextMenu: (itemData: any) => void
+      launchApp: (target: string, args: string[]) => void
+      getFileIcon: (path: string) => Promise<string | null>
+      setAlwaysOnTop: (flag: boolean) => void
+      getVolume: () => Promise<number>
+      setVolume: (value: number) => void
+      getFilesInFolder: (path: string, maxCount: number) => Promise<any[]>
+      executeCommand: (command: string) => void
+      openExternal: (url: string) => Promise<void>
+      getFilePath: (file: File) => string
+      getAppVersion: () => Promise<string>
+      getLoginItemSettings: () => Promise<any>
+      setLoginItemSettings: (settings: any) => Promise<any>
+      openSettings: () => void
+    }
   }
 }

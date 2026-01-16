@@ -17,9 +17,12 @@ export class SidebarWindow {
                 : screen.getPrimaryDisplay()
 
         const { x: screenX, y: screenY, height: screenHeight } = targetDisplay.bounds
-        const initialHeight = 100
-        let yPos = screenY + transforms.posy - initialHeight / 2
+        const initialHeight = 100 // 初始高度，稍后会通过 resize 调整
 
+        // 修改 Y 轴计算逻辑：posy: 0 意味着垂直居中
+        let yPos = Math.floor(screenY + (screenHeight / 2) + transforms.posy - (initialHeight / 2))
+
+        // 边界限制 (Clamping)
         if (yPos < screenY) yPos = screenY
         else if (yPos + initialHeight > screenY + screenHeight)
             yPos = screenY + screenHeight - initialHeight
@@ -76,9 +79,15 @@ export class SidebarWindow {
         const { x: screenX, y: screenY, width: screenWidth, height: screenHeight } =
             targetDisplay.bounds
 
-        let newY = typeof y === 'number' ? y : Math.floor(screenY + transforms.posy - height / 2)
+        // 修改 Y 轴计算逻辑：posy: 0 意味着垂直居中
+        let newY: number
+        if (typeof y === 'number') {
+            newY = y
+        } else {
+            newY = Math.floor(screenY + (screenHeight / 2) + transforms.posy - (height / 2))
+        }
 
-        // 边界检查
+        // 边界限制 (Clamping)
         if (newY < screenY) newY = screenY
         else if (newY + height > screenY + screenHeight) newY = screenY + screenHeight - height
 

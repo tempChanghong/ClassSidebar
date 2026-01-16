@@ -47,6 +47,13 @@ export function getExePathFromProtocol(protocol: string): string {
             if (cmdLine.startsWith('"')) {
                 return cmdLine.split('"')[1]
             } else {
+                // 修复：对于没有引号包裹的路径，可能包含空格，不能简单 split(' ')[0]
+                // 尝试查找 .exe 的位置
+                const exeIndex = cmdLine.toLowerCase().indexOf('.exe')
+                if (exeIndex !== -1) {
+                    return cmdLine.substring(0, exeIndex + 4)
+                }
+                // 如果没有 .exe，回退到 split
                 return cmdLine.split(' ')[0]
             }
         }

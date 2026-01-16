@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { AppSchema } from '../../../main/store'
+import { ref, toRaw } from 'vue'
+import type { AppSchema, WidgetConfig } from '../../../main/store'
 
-// 扩展 AppSchema 以包含 displayBounds，因为后端返回的 config 包含此字段
+// 扩展 AppSchema 以包含 displayBounds
 interface ExtendedAppSchema extends AppSchema {
     displayBounds?: {
         x: number
@@ -17,8 +17,8 @@ export const useSidebarStore = defineStore('sidebar', () => {
     const config = ref<ExtendedAppSchema | null>(null)
     const isExpanded = ref(false)
     const isDragging = ref(false)
-    const sidebarWidth = ref(4) // START_W
-    const sidebarHeight = ref(64) // START_H
+    const sidebarWidth = ref(4)
+    const sidebarHeight = ref(64)
 
     // 动作
     const loadConfig = async () => {
@@ -26,24 +26,20 @@ export const useSidebarStore = defineStore('sidebar', () => {
             const loadedConfig = await window.electronAPI.getConfig()
             config.value = loadedConfig
             
-            // 初始化尺寸
             if (loadedConfig.transforms) {
                 if (typeof loadedConfig.transforms.height === 'number') {
                     sidebarHeight.value = loadedConfig.transforms.height
                 }
-                // 应用其他初始样式设置（如透明度、动画速度）通常在组件层或通过 CSS 变量绑定处理
             }
         } catch (err) {
             console.error('加载配置失败:', err)
         }
 
-        // 监听配置更新
         if (window.electronAPI.onConfigUpdated) {
             window.electronAPI.onConfigUpdated((newConfig: ExtendedAppSchema) => {
-                console.log('配置已更新，重新应用...', newConfig)
+                console.log('配置已更新', newConfig)
                 config.value = newConfig
                 if (newConfig.transforms && typeof newConfig.transforms.height === 'number') {
-                    // 只有在未展开时才直接更新高度，避免动画冲突
                     if (!isExpanded.value) {
                         sidebarHeight.value = newConfig.transforms.height
                     }
@@ -61,16 +57,71 @@ export const useSidebarStore = defineStore('sidebar', () => {
         sidebarHeight.value = height
     }
 
-    const saveConfig = async (newConfig: AppSchema) => {
+    const saveConfig = async (newConfig: ExtendedAppSchema) => {
         try {
-            await window.electronAPI.saveConfig(newConfig)
-            // 保存后更新本地状态，注意这里可能需要重新获取带 displayBounds 的完整配置
-            // 或者简单地合并
+            // 1. 创建副本并移除 Vue Proxy
+            const configToSave = JSON.parse(JSON.stringify(toRaw(newConfig)))
+            
+            // 2. 移除运行时注入的 displayBounds 属性
+            if ('displayBounds' in configToSave) {
+                delete configToSave.displayBounds
+            }
+
+            // 3. 发送给主进程
+            await window.electronAPI.saveConfig(configToSave)
+            
+            // 4. 更新本地状态 (保留 displayBounds)
             if (config.value) {
-                config.value = { ...config.value, ...newConfig }
+                // 这里我们只更新配置部分，保留原有的 displayBounds
+                const { displayBounds } = config.value
+                config.value = { ...newConfig, displayBounds }
             }
         } catch (err) {
             console.error('保存配置失败:', err)
+        }
+    }
+
+    // --- Widget Management Actions ---
+
+    const addWidget = async (widget: Omit<WidgetConfig, 'id'>) => {
+        if (!config.value) return
+        const newWidget = { ...widget, id: crypto.randomUUID() } as WidgetConfig
+        const newWidgets = [...config.value.widgets, newWidget]
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
+    }
+
+    const updateWidget = async (id: string, updates: Partial<WidgetConfig>) => {
+        if (!config.value) return
+        const newWidgets = config.value.widgets.map(w => 
+            w.id === id ? { ...w, ...updates } : w
+        ) as WidgetConfig[]
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
+    }
+
+    const removeWidget = async (id: string) => {
+        if (!config.value) return
+        const newWidgets = config.value.widgets.filter(w => w.id !== id)
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
+    }
+
+    const reorderWidget = async (fromIndex: number, toIndex: number) => {
+        if (!config.value) return
+        const newWidgets = [...config.value.widgets]
+        const [moved] = newWidgets.splice(fromIndex, 1)
+        newWidgets.splice(toIndex, 0, moved)
+        const newConfig = { ...config.value, widgets: newWidgets }
+        await saveConfig(newConfig)
+    }
+
+    // 兼容旧版基于索引的操作 (可选，如果不再使用可移除)
+    const moveWidget = async (index: number, direction: 'up' | 'down') => {
+        if (!config.value) return
+        const newIndex = direction === 'up' ? index - 1 : index + 1
+        if (newIndex >= 0 && newIndex < config.value.widgets.length) {
+            await reorderWidget(index, newIndex)
         }
     }
 
@@ -83,6 +134,11 @@ export const useSidebarStore = defineStore('sidebar', () => {
         loadConfig,
         setExpanded,
         updateDimensions,
-        saveConfig
+        saveConfig,
+        addWidget,
+        updateWidget,
+        removeWidget,
+        reorderWidget,
+        moveWidget
     }
 })

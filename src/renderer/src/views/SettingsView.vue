@@ -15,7 +15,7 @@
         :class="{ 'opacity-50 cursor-not-allowed': !!jsonError }"
       >
         <Save class="w-4 h-4" />
-        保存配置
+        保存 JSON
       </button>
     </template>
 
@@ -53,25 +53,18 @@
 
     <!-- Tab: Appearance (Widgets) -->
     <div v-else-if="currentTab === 'widgets'" class="space-y-6">
-      <SettingsSection title="快速添加组件" description="点击下方按钮将预设组件添加到侧边栏">
-        <div class="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <button
-            v-for="action in widgetActions"
-            :key="action.label"
-            @click="action.handler"
-            class="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-300 hover:shadow-md transition-all duration-200 group"
-          >
-            <component :is="action.icon" class="w-6 h-6 mb-2 text-slate-400 group-hover:text-blue-500 transition-colors" />
-            <span class="text-sm font-medium text-slate-700 group-hover:text-slate-900">{{ action.label }}</span>
-          </button>
-        </div>
+
+      <!-- Visual Widget Manager -->
+      <SettingsSection title="组件管理" description="拖拽排序或点击编辑来管理侧边栏组件">
+        <WidgetManager />
       </SettingsSection>
 
+      <!-- Advanced JSON Editor -->
       <SettingsSection title="高级配置 (JSON)" description="直接编辑配置文件以获得完全控制权">
         <div class="relative border-t border-slate-100">
           <textarea
             v-model="configJson"
-            class="w-full h-[400px] p-4 font-mono text-xs leading-relaxed bg-slate-900 text-slate-300 focus:outline-none resize-y"
+            class="w-full h-[300px] p-4 font-mono text-xs leading-relaxed bg-slate-900 text-slate-300 focus:outline-none resize-y"
             spellcheck="false"
           ></textarea>
           <div
@@ -121,19 +114,14 @@ import {
   Info,
   Play,
   Save,
-  Sidebar,
-  AppWindow,
-  Volume2,
-  FolderOpen,
-  MousePointerClick,
-  GraduationCap,
-  Shuffle
+  Sidebar
 } from 'lucide-vue-next'
 import SettingsLayout from '../components/ui/SettingsLayout.vue'
 import SettingsSection from '../components/ui/SettingsSection.vue'
 import SettingsRow from '../components/ui/SettingsRow.vue'
 import BaseSwitch from '../components/ui/BaseSwitch.vue'
 import BaseInput from '../components/ui/BaseInput.vue'
+import WidgetManager from '../components/settings/WidgetManager.vue'
 import { useConfig } from '../composables/useConfig'
 
 // --- State & Config ---
@@ -181,8 +169,8 @@ watch(configJson, (newVal) => {
   try {
     JSON.parse(newVal)
     jsonError.value = ''
-  } catch (e: any) {
-    jsonError.value = e.message
+  } catch (e: unknown) {
+    jsonError.value = e instanceof Error ? e.message : 'Invalid JSON format'
   }
 })
 
@@ -215,76 +203,4 @@ const saveJsonConfig = async () => {
     ElMessage.error('保存失败')
   }
 }
-
-// --- Widget Helpers ---
-const addWidgetToConfig = async (widget: any) => {
-  try {
-    const currentConfig = config.value ? JSON.parse(JSON.stringify(config.value)) : { widgets: [] }
-    if (!currentConfig.widgets) currentConfig.widgets = []
-    currentConfig.widgets.push(widget)
-    await saveConfig(currentConfig)
-    ElMessage.success('组件已添加')
-  } catch (e) {
-    console.error(e)
-    ElMessage.error('添加组件失败')
-  }
-}
-
-const widgetActions = [
-  {
-    label: '启动器',
-    icon: AppWindow,
-    handler: () => addWidgetToConfig({
-      type: 'launcher',
-      layout: 'grid',
-      targets: [{ name: '示例应用', target: 'notepad.exe' }]
-    })
-  },
-  {
-    label: '音量条',
-    icon: Volume2,
-    handler: () => addWidgetToConfig({ type: 'volume_slider' })
-  },
-  {
-    label: '文件夹',
-    icon: FolderOpen,
-    handler: () => addWidgetToConfig({
-      type: 'files',
-      folder_path: 'C:\\Users\\Public\\Desktop',
-      max_count: 10
-    })
-  },
-  {
-    label: '拖拽启动',
-    icon: MousePointerClick,
-    handler: () => addWidgetToConfig({
-      type: 'drag_to_launch',
-      command_template: '"{path}"'
-    })
-  },
-  {
-    label: 'ClassIsland',
-    icon: GraduationCap,
-    handler: () => addWidgetToConfig({
-      type: 'launcher',
-      layout: 'grid',
-      targets: [
-        { name: 'ClassIsland', target: 'classisland://app', icon: 'classisland.exe' },
-        { name: 'CI 换课', target: 'classisland://app/class-swap', icon: 'classisland.exe' }
-      ]
-    })
-  },
-  {
-    label: 'SecRandom',
-    icon: Shuffle,
-    handler: () => addWidgetToConfig({
-      type: 'launcher',
-      layout: 'grid',
-      targets: [
-        { name: 'SecRandom', target: 'secrandom://app', icon: 'secrandom.exe' },
-        { name: '随机点名', target: 'secrandom://pumping', icon: 'secrandom.exe' }
-      ]
-    })
-  }
-]
 </script>
