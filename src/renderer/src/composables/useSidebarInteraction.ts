@@ -28,11 +28,21 @@ export function useSidebarInteraction(
   // 拖拽相关状态 (垂直移动)
   let isVerticalDragging = false
   let startY = 0
+  
+  // 标志位：是否仅更新位置
+  let isUpdatingPosOnly = false
 
   // 监听配置变化以更新常量
   watch(
     () => store.config,
     (newConfig) => {
+      if (isUpdatingPosOnly) {
+          // 如果是垂直拖拽导致的位置更新，忽略窗口尺寸重置
+          // 并在稍后重置标志位，以防万一
+          setTimeout(() => { isUpdatingPosOnly = false }, 100)
+          return
+      }
+
       if (newConfig?.transforms) {
         if (typeof newConfig.transforms.height === 'number') START_H = newConfig.transforms.height
         if (typeof newConfig.transforms.width === 'number') TARGET_W = newConfig.transforms.width
@@ -328,16 +338,19 @@ export function useSidebarInteraction(
     // 拖拽结束，获取最新位置并保存
     if (store.config) {
         const newPosy = await window.electronAPI.getCurrentPosY()
-        // 更新本地 store (不触发 watch，因为我们只更新 posy)
+        
+        // 关键：设置标志位，防止 watcher 触发 resizeWindow
+        isUpdatingPosOnly = true
+        
+        // 更新本地 store
         store.config.transforms.posy = newPosy
         
-        // 关键修复：使用 toRaw 和 JSON.parse/stringify 剥离 Proxy
+        // 剥离 Proxy 并保存
         const configToSave = JSON.parse(JSON.stringify(toRaw(store.config)))
         if ('displayBounds' in configToSave) {
             delete configToSave.displayBounds
         }
         
-        // 保存到磁盘
         await window.electronAPI.saveConfig(configToSave)
     }
   }
