@@ -1,4 +1,4 @@
-import { computed, watch, onMounted, onUnmounted, Ref, toRaw } from 'vue'
+import { computed, watch, onMounted, onUnmounted, Ref, toRaw, ref } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 
 export function useSidebarInteraction(
@@ -7,7 +7,7 @@ export function useSidebarInteraction(
 ) {
   const store = useSidebarStore()
 
-  // 常量定义
+  // Constants
   const START_W = 4
   let START_H = 64
   let TARGET_W = 400
@@ -15,7 +15,7 @@ export function useSidebarInteraction(
   const THRESHOLD = 60
   const VELOCITY_THRESHOLD = 0.3
 
-  // 拖拽相关状态 (水平展开)
+  // State
   let startX = 0
   let lastX = 0
   let lastTime = 0
@@ -25,51 +25,77 @@ export function useSidebarInteraction(
   let startTimeStamp = 0
   let lastResizeTime = 0
 
-  // 拖拽相关状态 (垂直移动)
   let isVerticalDragging = false
   let startY = 0
-  
-  // 标志位：是否仅更新位置
-  let isUpdatingPosOnly = false
 
-  // 监听配置变化以更新常量
+  // Local copy for strict diffing
+  const lastTransforms = ref<any>(null)
+
+  // --- Watcher: Strict Control ---
   watch(
     () => store.config,
     (newConfig) => {
-      if (isUpdatingPosOnly) {
-          // 如果是垂直拖拽导致的位置更新，忽略窗口尺寸重置
-          // 并在稍后重置标志位，以防万一
-          setTimeout(() => { isUpdatingPosOnly = false }, 100)
+      if (!newConfig?.transforms) return
+
+      const newT = newConfig.transforms
+
+      // Initialize lastTransforms (First Load)
+      if (!lastTransforms.value) {
+        lastTransforms.value = JSON.parse(JSON.stringify(newT))
+        if (typeof newT.height === 'number') START_H = newT.height
+        if (typeof newT.width === 'number') TARGET_W = newT.width
+        
+        // CRITICAL FIX: Force initial resize to correct any startup artifacts
+        if (!store.isExpanded) {
+            window.electronAPI.resizeWindow(20, START_H + 40)
+        }
+        return
+      }
+
+      const oldT = lastTransforms.value
+      
+      // Detect changes
+      const heightChanged = newT.height !== oldT.height
+      const widthChanged = newT.width !== oldT.width
+      const displayChanged = newT.display !== oldT.display
+      const posyChanged = newT.posy !== oldT.posy
+
+      // Update local record
+      lastTransforms.value = JSON.parse(JSON.stringify(newT))
+      
+      // Update constants
+      if (typeof newT.height === 'number') START_H = newT.height
+      if (typeof newT.width === 'number') TARGET_W = newT.width
+
+      // --- CRITICAL FIX ---
+      // If ONLY posy changed (drag), DO NOT RESIZE.
+      if (posyChanged && !heightChanged && !widthChanged && !displayChanged) {
           return
       }
 
-      if (newConfig?.transforms) {
-        if (typeof newConfig.transforms.height === 'number') START_H = newConfig.transforms.height
-        if (typeof newConfig.transforms.width === 'number') TARGET_W = newConfig.transforms.width
-        
-        // 强制刷新尺寸逻辑
+      // Only resize if structural properties changed
+      if (heightChanged || widthChanged || displayChanged) {
         if (!store.isExpanded) {
           window.electronAPI.resizeWindow(20, START_H + 40)
         } else {
+          // If expanded, we must be careful not to collapse the height
+          // if the config height (collapsed height) is small.
           updateWindowSize(1)
         }
       }
     },
-    { deep: true }
+    { deep: true, immediate: true }
   )
 
-  // 计算属性：进度 (0-1)
   const progress = computed(() => {
     if (TARGET_W === START_W) return 0
     return Math.max(0, Math.min(1, (store.sidebarWidth - START_W) / (TARGET_W - START_W)))
   })
 
-  // 计算样式
   const sidebarStyle = computed(() => {
     const p = progress.value
     const currentRadius = 4 + 12 * p
     const currentMargin = 6 + 6 * p
-
     const gray = Math.floor(156 + (255 - 156) * p)
     const baseOpacity = store.config?.transforms?.opacity ?? 0.95
     const currentOpacity = 0.8 + (baseOpacity - 0.8) * p
@@ -104,8 +130,17 @@ export function useSidebarInteraction(
       targetWinW = 20
       targetWinH = START_H + 40
     } else {
-      targetWinW = Math.floor(store.sidebarWidth + 100)
-      targetWinH = Math.floor(store.sidebarHeight + 100)
+      // --- CRITICAL FIX ---
+      // When expanded (p > 0), we MUST use the expanded dimensions.
+      // Do NOT rely on store.sidebarHeight blindly if p is 1, 
+      // because store.sidebarHeight might have been reset to 64 by a config update.
+      if (p >= 0.99) {
+          targetWinW = Math.floor(TARGET_W + 100)
+          targetWinH = Math.floor(TARGET_H + 100)
+      } else {
+          targetWinW = Math.floor(store.sidebarWidth + 100)
+          targetWinH = Math.floor(store.sidebarHeight + 100)
+      }
     }
 
     const startCenterY = screenY + posy
@@ -123,6 +158,7 @@ export function useSidebarInteraction(
     }
   }
 
+  // Width 变化时也触发一次 resize (处理动画过程中的高度同步)
   watch(
     () => store.sidebarWidth,
     () => {
@@ -223,7 +259,7 @@ export function useSidebarInteraction(
       target.tagName === 'A' ||
       !!target.closest('.launcher-item') ||
       !!target.closest('.volume-slider-container') ||
-      !!target.closest('.drag-handle') // 排除拖拽手柄
+      !!target.closest('.drag-handle')
     )
   }
 
@@ -316,36 +352,36 @@ export function useSidebarInteraction(
     }
   }
 
-  // --- 垂直拖拽逻辑 ---
+  // --- Vertical Drag Logic ---
   function onDragHandleMouseDown(e: MouseEvent) {
-    e.stopPropagation() // 防止触发水平拖拽
+    e.stopPropagation()
     isVerticalDragging = true
     startY = e.screenY
-    window.electronAPI.setIgnoreMouse(false, true) // 确保鼠标事件被捕获
+    window.electronAPI.setIgnoreMouse(false, true)
   }
 
   function handleVerticalMove(currentY: number) {
     if (!isVerticalDragging) return
     const deltaY = currentY - startY
     window.electronAPI.moveWindow(deltaY)
-    startY = currentY // 更新基准点，因为窗口已经移动了
+    startY = currentY
   }
 
   async function handleVerticalEnd() {
     if (!isVerticalDragging) return
     isVerticalDragging = false
     
-    // 拖拽结束，获取最新位置并保存
     if (store.config) {
         const newPosy = await window.electronAPI.getCurrentPosY()
         
-        // 关键：设置标志位，防止 watcher 触发 resizeWindow
-        isUpdatingPosOnly = true
-        
-        // 更新本地 store
-        store.config.transforms.posy = newPosy
-        
-        // 剥离 Proxy 并保存
+        // Sync local store AND lastTransforms to prevent watcher trigger
+        if (store.config.transforms) {
+            store.config.transforms.posy = newPosy
+            if (lastTransforms.value) {
+                lastTransforms.value.posy = newPosy
+            }
+        }
+
         const configToSave = JSON.parse(JSON.stringify(toRaw(store.config)))
         if ('displayBounds' in configToSave) {
             delete configToSave.displayBounds
@@ -404,19 +440,15 @@ export function useSidebarInteraction(
   }
 
   const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length > 0) {
-      // 如果正在垂直拖拽，优先处理垂直
-      // 但目前垂直拖拽只支持鼠标，这里只处理水平
-      if (store.isDragging) {
-        e.preventDefault()
-        handleMove(e.touches[0].screenX)
-      }
+    if (e.touches.length > 0 && store.isDragging) {
+      e.preventDefault()
+      handleMove(e.touches[0].screenX)
     }
   }
   
   const onTouchEnd = (e: TouchEvent) => {
     handleEnd(e.changedTouches.length > 0 ? e.changedTouches[0].screenX : null)
-    handleVerticalEnd() // 确保触摸结束也清理状态
+    handleVerticalEnd()
   }
   
   const onBlur = () => {
@@ -453,6 +485,6 @@ export function useSidebarInteraction(
     sidebarStyle,
     onWrapperMouseDown,
     onWrapperTouchStart,
-    onDragHandleMouseDown // 暴露给组件
+    onDragHandleMouseDown
   }
 }
