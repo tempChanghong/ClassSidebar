@@ -80,8 +80,8 @@
     <!-- Tab: About -->
     <div v-else-if="currentTab === 'about'" class="space-y-6">
       <div class="flex flex-col items-center justify-center py-12 text-center">
-        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center mb-6 text-white">
-          <Sidebar class="w-10 h-10" />
+        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center mb-6 text-white overflow-hidden">
+          <img :src="appIcon" alt="Logo" class="w-full h-full object-cover" />
         </div>
         <h2 class="text-2xl font-bold text-slate-900">ClassSidebar</h2>
         <p class="text-slate-500 mt-2">专为现代化课堂设计的智能侧边栏</p>
@@ -113,8 +113,7 @@ import {
   LayoutGrid,
   Info,
   Play,
-  Save,
-  Sidebar
+  Save
 } from 'lucide-vue-next'
 import SettingsLayout from '../components/ui/SettingsLayout.vue'
 import SettingsSection from '../components/ui/SettingsSection.vue'
@@ -123,6 +122,7 @@ import BaseSwitch from '../components/ui/BaseSwitch.vue'
 import BaseInput from '../components/ui/BaseInput.vue'
 import WidgetManager from '../components/settings/WidgetManager.vue'
 import { useConfig } from '../composables/useConfig'
+import appIcon from '../assets/icons.png' // 恢复图片导入
 
 // --- State & Config ---
 const { config, saveConfig } = useConfig()
