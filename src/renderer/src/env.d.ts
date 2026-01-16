@@ -18,7 +18,6 @@ declare global {
       saveConfig: (newConfig: AppSchema) => Promise<{ success: boolean }>
       onConfigUpdated: (callback: (newConfig: AppSchema) => void) => void
       addShortcut: (filePath: string) => Promise<{ success: boolean; error?: string }>
-      // 更新 openFileDialog 签名，允许传入 options
       openFileDialog: (options?: any) => Promise<string | null>
       showContextMenu: (itemData: any) => void
       launchApp: (target: string, args: string[]) => void
@@ -29,6 +28,8 @@ declare global {
       getFilesInFolder: (path: string, maxCount: number) => Promise<any[]>
       executeCommand: (command: string) => void
       openExternal: (url: string) => Promise<void>
+      moveWindow: (deltaY: number) => void
+      getCurrentPosY: () => Promise<number>
       getFilePath: (file: File) => string
       getAppVersion: () => Promise<string>
       getLoginItemSettings: () => Promise<any>

@@ -10,11 +10,21 @@
       ref="sidebarRef"
       :style="sidebarStyle"
     >
-      <div class="widgets-container">
-        <h2>Sidebar</h2>
-        <button class="settings-button" @click="openSettings" title="设置">
-          <Settings class="w-4 h-4" />
-        </button>
+      <!-- 拖拽手柄 -->
+      <div
+        class="drag-handle h-3 w-full flex items-center justify-center cursor-ns-resize hover:bg-black/5 transition-colors"
+        @mousedown="onDragHandleMouseDown"
+      >
+        <GripHorizontal class="w-4 h-4 text-slate-400" />
+      </div>
+
+      <div class="widgets-container pt-1">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-slate-800">Sidebar</h2>
+            <button class="settings-button" @click="openSettings" title="设置">
+              <Settings class="w-4 h-4" />
+            </button>
+        </div>
 
         <div id="widget-container">
            <WidgetHost
@@ -34,7 +44,7 @@
 import { ref, onMounted } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 import WidgetHost from '../components/widgets/WidgetHost.vue'
-import { Settings } from 'lucide-vue-next'
+import { Settings, GripHorizontal } from 'lucide-vue-next'
 import { useSidebarInteraction } from '../composables/useSidebarInteraction'
 
 const store = useSidebarStore()
@@ -42,7 +52,12 @@ const wrapperRef = ref<HTMLElement | null>(null)
 const sidebarRef = ref<HTMLElement | null>(null)
 
 // 使用 Composable 提取交互逻辑
-const { sidebarStyle, onWrapperMouseDown, onWrapperTouchStart } = useSidebarInteraction(
+const {
+    sidebarStyle,
+    onWrapperMouseDown,
+    onWrapperTouchStart,
+    onDragHandleMouseDown
+} = useSidebarInteraction(
   wrapperRef,
   sidebarRef
 )
@@ -55,3 +70,24 @@ onMounted(() => {
   store.loadConfig()
 })
 </script>
+
+<style scoped>
+/* 保留原有样式，Tailwind 类名已在模板中直接使用 */
+.settings-button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    transition: all 0.2s ease;
+}
+.settings-button:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+</style>
