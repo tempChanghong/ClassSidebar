@@ -17,7 +17,7 @@ export interface BaseWidget {
 
 export interface LauncherWidgetConfig extends BaseWidget {
     type: 'launcher';
-    target: string; // exe 路径
+    target?: string; // exe 路径 (设为可选以兼容容器模式)
     args?: string[];
     // 兼容旧的 Grid 布局
     layout?: 'grid' | 'vertical'; 

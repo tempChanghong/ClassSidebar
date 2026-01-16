@@ -33,9 +33,9 @@
         <!-- Drag to Launch -->
         <DragToLaunchWidget v-else-if="widget.type === 'drag_to_launch'" :config="widget" />
 
-        <!-- Fallback for unknown types -->
+        <!-- Fallback for unknown or unhandled types -->
         <div v-else class="p-2 bg-red-50 text-red-500 text-xs rounded">
-          Unknown: {{ widget.type }}
+          Unknown or unhandled widget type: {{ (widget as any).type }}
         </div>
       </div>
     </template>

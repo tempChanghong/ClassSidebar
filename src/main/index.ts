@@ -440,7 +440,7 @@ function registerIpc(): void {
 
             const widgets = store.get('widgets', [])
             // 尝试查找第一个 LauncherWidgetConfig
-            let launcherWidget = widgets.find((w): w is LauncherWidgetConfig => w.type === 'launcher')
+            let launcherWidget = widgets.find((w): w is LauncherWidgetConfig => w.type === 'launcher' && w.layout === 'grid')
 
             if (!launcherWidget) {
                 // 如果没有 LauncherWidget，则创建一个新的
