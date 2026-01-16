@@ -1,4 +1,4 @@
-import { computed, watch, onMounted, onUnmounted, Ref } from 'vue'
+import { computed, watch, onMounted, onUnmounted, Ref, toRaw } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 
 export function useSidebarInteraction(
@@ -330,8 +330,15 @@ export function useSidebarInteraction(
         const newPosy = await window.electronAPI.getCurrentPosY()
         // 更新本地 store (不触发 watch，因为我们只更新 posy)
         store.config.transforms.posy = newPosy
+        
+        // 关键修复：使用 toRaw 和 JSON.parse/stringify 剥离 Proxy
+        const configToSave = JSON.parse(JSON.stringify(toRaw(store.config)))
+        if ('displayBounds' in configToSave) {
+            delete configToSave.displayBounds
+        }
+        
         // 保存到磁盘
-        await window.electronAPI.saveConfig(store.config)
+        await window.electronAPI.saveConfig(configToSave)
     }
   }
 
@@ -384,13 +391,20 @@ export function useSidebarInteraction(
   }
 
   const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length > 0 && store.isDragging) {
-      e.preventDefault()
-      handleMove(e.touches[0].screenX)
+    if (e.touches.length > 0) {
+      // 如果正在垂直拖拽，优先处理垂直
+      // 但目前垂直拖拽只支持鼠标，这里只处理水平
+      if (store.isDragging) {
+        e.preventDefault()
+        handleMove(e.touches[0].screenX)
+      }
     }
   }
-  const onTouchEnd = (e: TouchEvent) =>
+  
+  const onTouchEnd = (e: TouchEvent) => {
     handleEnd(e.changedTouches.length > 0 ? e.changedTouches[0].screenX : null)
+    handleVerticalEnd() // 确保触摸结束也清理状态
+  }
   
   const onBlur = () => {
     if (store.isExpanded) collapse()
