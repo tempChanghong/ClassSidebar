@@ -1,7 +1,6 @@
-import { spawn, exec } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import { ipcMain, IpcMainEvent, IpcMainInvokeEvent, Menu, MenuItem, BrowserWindow } from 'electron';
-import { shell } from 'electron';
 
 export class SystemToolManager {
     constructor() {
