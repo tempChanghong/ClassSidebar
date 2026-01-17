@@ -444,7 +444,14 @@ const selectFolder = async () => {
 }
 
 const selectIcon = async () => {
-  const path = await window.electronAPI.openFileDialog({ properties: ['openFile'] })
+  const path = await window.electronAPI.openFileDialog({
+    properties: ['openFile'],
+    filters: [
+      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'ico', 'svg', 'webp'] },
+      { name: 'Executables', extensions: ['exe', 'lnk'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
   if (path) {
      // For now, we just use the file path as icon source if it's an image,
      // or try to extract icon if it's an exe.

@@ -225,8 +225,8 @@ p {
     box-sizing: border-box;
 }
 
-/* 垂直布局优化 */
-.layout-vertical {
+/* 垂直布局优化 - 增加权重 */
+.widget-list .launcher-item.layout-vertical {
     padding: 8px 12px; /* 增加垂直内边距 */
     flex-direction: row;
     gap: 12px; /* 增加图标和文字的间距 */
@@ -274,8 +274,8 @@ p {
     flex-shrink: 0;
 }
 
-/* 垂直布局图标样式优化 */
-.layout-vertical .launcher-icon {
+/* 垂直布局图标样式优化 - 增加权重 */
+.widget-list .launcher-item.layout-vertical .launcher-icon {
     width: 32px; /* 稍微放大图标 */
     height: 32px;
     margin-right: 0; /* 间距由 gap 控制 */
@@ -319,8 +319,8 @@ p {
     max-width: 100%;
 }
 
-/* 垂直布局文字样式优化 */
-.layout-vertical .launcher-name {
+/* 垂直布局文字样式优化 - 增加权重 */
+.widget-list .launcher-item.layout-vertical .launcher-name {
     font-size: 14px;
     font-weight: 600; /* 加粗文字 */
     color: #374151;
