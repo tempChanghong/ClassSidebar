@@ -1,24 +1,22 @@
 <template>
-  <div class="system-tools-widget">
-    <!-- 工具箱按钮 -->
-    <BaseWidget
-      name="系统工具"
-      title="系统工具箱"
-      :class="{ 'active': isOpen }"
-      @click="toggleDrawer"
-    >
-      <template #icon>
-        <div class="toolbox-icon" v-html="icons.toolbox"></div>
-      </template>
-    </BaseWidget>
+  <BaseWidget
+    name="系统工具"
+    title="系统工具箱"
+    :class="['layout-vertical', { 'active': isOpen }]"
+    @click="toggleDrawer"
+  >
+    <template #icon>
+      <div class="widget-icon" v-html="icons.toolbox"></div>
+    </template>
+  </BaseWidget>
 
-    <!-- 抽屉内容 -->
+  <Teleport to=".sidebar-container">
     <transition name="drawer">
-      <div v-if="isOpen" class="drawer-content">
+      <div v-if="isOpen" class="system-tools-drawer">
         <div class="drawer-header">
           <h3>系统工具</h3>
           <button class="close-btn" @click="toggleDrawer">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -38,7 +36,7 @@
         </div>
       </div>
     </transition>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -96,62 +94,49 @@ const executeTool = (toolId: string) => {
 </script>
 
 <style scoped>
-.system-tools-widget {
+.widget-icon {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 }
 
-.toolbox-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.toolbox-icon :deep(svg) {
+.widget-icon :deep(svg) {
   width: 100%;
   height: 100%;
 }
 
 /* 抽屉样式 */
-.drawer-content {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 320px;
-  background: rgba(30, 30, 30, 0.95);
-  backdrop-filter: blur(20px);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 20px;
+.system-tools-drawer {
+  position: absolute;
+  inset: 0;
+  background: rgba(243, 244, 246, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
-  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.3);
+  z-index: 50;
 }
 
 .drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .drawer-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: #1f2937;
 }
 
 .close-btn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: #6b7280;
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
@@ -164,8 +149,8 @@ const executeTool = (toolId: string) => {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.05);
+  color: #1f2937;
 }
 
 .tools-grid {
@@ -173,33 +158,34 @@ const executeTool = (toolId: string) => {
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 16px;
+  flex: 1;
 }
 
 .tool-item {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .tool-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(59, 130, 246, 0.3);
   transform: translateY(-2px);
 }
 
 .tool-icon {
-  width: 32px;
-  height: 32px;
-  color: rgba(255, 255, 255, 0.9);
+  width: 28px;
+  height: 28px;
+  color: #4b5563;
 }
 
 .tool-icon :deep(svg) {
@@ -208,8 +194,8 @@ const executeTool = (toolId: string) => {
 }
 
 .tool-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  color: #374151;
   text-align: center;
 }
 
@@ -223,12 +209,12 @@ const executeTool = (toolId: string) => {
 }
 
 .tools-grid::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 2px;
 }
 
 .tools-grid::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* 抽屉动画 */
