@@ -30,6 +30,54 @@ export function useSidebarInteraction(
 
   const lastTransforms = ref<any>(null)
 
+  function throttledResize(w: number, h: number, y: number) {
+    const now = Date.now()
+    if (now - lastResizeTime > 16) {
+      window.electronAPI.resizeWindow(w, h, y)
+      lastResizeTime = now
+    }
+  }
+
+  function updateWindowSize(p: number) {
+    if (!store.config?.transforms || !store.config?.displayBounds) return
+
+    const { posy } = store.config.transforms
+    const { y: screenY, height: screenH } = store.config.displayBounds
+
+    let targetWinW: number, targetWinH: number
+
+    if (p <= 0) {
+      targetWinW = 20
+      targetWinH = START_H + 40
+    } else {
+      if (p >= 0.99) {
+          targetWinW = Math.floor(TARGET_W + 100)
+          targetWinH = Math.floor(TARGET_H + 100)
+      } else {
+          targetWinW = Math.floor(store.sidebarWidth + 100)
+          targetWinH = Math.floor(store.sidebarHeight + 100)
+      }
+    }
+
+    // Correct calculation for startCenterY: screenY + half screen height + posy offset
+    const startCenterY = screenY + (screenH / 2) + posy
+    
+    const safeCenterY = Math.max(
+      screenY + TARGET_H / 2 + 20,
+      Math.min(screenY + screenH - TARGET_H / 2 - 20, startCenterY)
+    )
+    const currentCenterY = startCenterY + (safeCenterY - startCenterY) * p
+    const newWindowY = currentCenterY - targetWinH / 2
+
+    // console.log(`[RENDERER-DEBUG] updateWindowSize p=${p}. Target: ${targetWinW}x${targetWinH} at Y=${newWindowY}`)
+
+    if (p === 0 || p === 1) {
+      window.electronAPI.resizeWindow(targetWinW, targetWinH, newWindowY)
+    } else {
+      throttledResize(targetWinW, targetWinH, newWindowY)
+    }
+  }
+
   // --- Watcher: Strict Control ---
   watch(
     () => store.config,
@@ -46,7 +94,7 @@ export function useSidebarInteraction(
         
         if (!store.isExpanded) {
             console.log('[RENDERER-DEBUG] First load: Forcing collapsed resize')
-            window.electronAPI.resizeWindow(20, START_H + 40)
+            updateWindowSize(0)
         }
         return
       }
@@ -59,22 +107,24 @@ export function useSidebarInteraction(
       const posyChanged = newT.posy !== oldT.posy
 
       console.log(`[RENDERER-DEBUG] Config Changed. H:${heightChanged} W:${widthChanged} D:${displayChanged} PosY:${posyChanged}`)
-      console.log(`[RENDERER-DEBUG] Old PosY: ${oldT.posy}, New PosY: ${newT.posy}`)
-
+      
       lastTransforms.value = JSON.parse(JSON.stringify(newT))
       
       if (typeof newT.height === 'number') START_H = newT.height
       if (typeof newT.width === 'number') TARGET_W = newT.width
 
       if (posyChanged && !heightChanged && !widthChanged && !displayChanged) {
-          console.log('[RENDERER-DEBUG] Only PosY changed. IGNORING resize.')
+          // If only posy changed, we might want to update position if collapsed
+          if (!store.isExpanded) {
+              updateWindowSize(0)
+          }
           return
       }
 
       if (heightChanged || widthChanged || displayChanged) {
         console.log('[RENDERER-DEBUG] Structural change detected. Resizing...')
         if (!store.isExpanded) {
-          window.electronAPI.resizeWindow(20, START_H + 40)
+          updateWindowSize(0)
         } else {
           updateWindowSize(1)
         }
@@ -105,52 +155,6 @@ export function useSidebarInteraction(
       transition: store.isDragging || animationId ? 'none' : undefined
     }
   })
-
-  function throttledResize(w: number, h: number, y: number) {
-    const now = Date.now()
-    if (now - lastResizeTime > 16) {
-      window.electronAPI.resizeWindow(w, h, y)
-      lastResizeTime = now
-    }
-  }
-
-  function updateWindowSize(p: number) {
-    if (!store.config?.transforms || !store.config?.displayBounds) return
-
-    const { posy } = store.config.transforms
-    const { y: screenY, height: screenH } = store.config.displayBounds
-
-    let targetWinW: number, targetWinH: number
-
-    if (p <= 0) {
-      targetWinW = 20
-      targetWinH = START_H + 40
-    } else {
-      if (p >= 0.99) {
-          targetWinW = Math.floor(TARGET_W + 100)
-          targetWinH = Math.floor(TARGET_H + 100)
-      } else {
-          targetWinW = Math.floor(store.sidebarWidth + 100)
-          targetWinH = Math.floor(store.sidebarHeight + 100)
-      }
-    }
-
-    const startCenterY = screenY + posy
-    const safeCenterY = Math.max(
-      screenY + TARGET_H / 2 + 20,
-      Math.min(screenY + screenH - TARGET_H / 2 - 20, startCenterY)
-    )
-    const currentCenterY = startCenterY + (safeCenterY - startCenterY) * p
-    const newWindowY = currentCenterY - targetWinH / 2
-
-    console.log(`[RENDERER-DEBUG] updateWindowSize p=${p}. Target: ${targetWinW}x${targetWinH} at Y=${newWindowY}`)
-
-    if (p === 0 || p === 1) {
-      window.electronAPI.resizeWindow(targetWinW, targetWinH, newWindowY)
-    } else {
-      throttledResize(targetWinW, targetWinH, newWindowY)
-    }
-  }
 
   watch(
     () => store.sidebarWidth,
@@ -236,7 +240,8 @@ export function useSidebarInteraction(
       if (t >= 1) {
         store.updateDimensions(START_W, START_H)
         animationId = null
-        window.electronAPI.resizeWindow(20, START_H + 40)
+        // Force resize to collapsed state when animation finishes
+        updateWindowSize(0)
       } else {
         animationId = requestAnimationFrame(animate)
       }

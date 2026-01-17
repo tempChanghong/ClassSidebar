@@ -50,10 +50,13 @@ export const useSidebarStore = defineStore('sidebar', () => {
                         console.log('[DEBUG] 窗口未展开，更新 sidebarHeight 为配置值:', newConfig.transforms.height)
                         sidebarHeight.value = newConfig.transforms.height
                     } else {
-                        // When expanded, ensure sidebarHeight is set to TARGET_H
+                        // When expanded, ensure sidebarHeight is set to TARGET_H (450)
                         // This prevents the window from collapsing to 64px after drag
-                        console.log('[DEBUG] 窗口已展开，强制设置 sidebarHeight 为 450')
-                        sidebarHeight.value = 450
+                        // However, we should be careful not to override if it's already correct
+                        if (sidebarHeight.value < 450) {
+                             console.log('[DEBUG] 窗口已展开但高度不正确，强制设置 sidebarHeight 为 450')
+                             sidebarHeight.value = 450
+                        }
                     }
                 }
                 console.log('[DEBUG] 更新后 sidebarHeight:', sidebarHeight.value)
