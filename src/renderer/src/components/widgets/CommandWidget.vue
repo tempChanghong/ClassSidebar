@@ -1,25 +1,19 @@
 <template>
-  <div
-    class="launcher-item"
-    @click="handleClick"
-    @contextmenu.prevent="handleContextMenu"
+  <BaseWidget
+    :name="item.name || 'Command'"
     :title="item.command"
-  >
-    <div class="launcher-icon">
-      <img v-if="item.icon" :src="item.icon" alt="icon" class="w-full h-full object-contain" />
-      <div v-else class="launcher-icon-placeholder bg-purple-100 text-purple-500">
-        <Terminal class="w-5 h-5" />
-      </div>
-    </div>
-    <div class="launcher-info">
-      <div class="launcher-name">{{ item.name || 'Command' }}</div>
-    </div>
-  </div>
+    :icon="item.icon"
+    :default-icon="Terminal"
+    placeholder-class="bg-purple-100 text-purple-500"
+    @click="handleClick"
+    @contextmenu="handleContextMenu"
+  />
 </template>
 
 <script setup lang="ts">
 import { Terminal } from 'lucide-vue-next'
 import type { CommandWidgetConfig } from '../../../../main/store'
+import BaseWidget from './BaseWidget.vue'
 
 const props = defineProps<{
   item: CommandWidgetConfig
@@ -29,10 +23,19 @@ const props = defineProps<{
 const handleClick = () => {
   if (props.item.command) {
     let cmd = props.item.command
+    // Escape double quotes for the wrapper command
+    const escapedCmd = cmd.replace(/"/g, '\\"')
+
     if (props.item.shell === 'powershell') {
-        cmd = `powershell -Command "${cmd.replace(/"/g, '\\"')}"`
+        // PowerShell: Open new window, keep it open (-NoExit)
+        // start "" is used to prevent the first quoted argument being interpreted as window title
+        cmd = `start "" powershell -NoExit -Command "${escapedCmd}"`
     } else if (props.item.shell === 'bash') {
-        cmd = `bash -c "${cmd.replace(/"/g, '\\"')}"`
+        // Bash: Open new window
+        cmd = `start "" bash -c "${escapedCmd}; exec bash"`
+    } else {
+        // CMD (default): Open new window, keep it open (/k)
+        cmd = `start "" cmd /k "${escapedCmd}"`
     }
     window.electronAPI.executeCommand(cmd)
   }
@@ -46,14 +49,3 @@ const handleContextMenu = () => {
   })
 }
 </script>
-
-<style scoped>
-.launcher-icon-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-}
-</style>

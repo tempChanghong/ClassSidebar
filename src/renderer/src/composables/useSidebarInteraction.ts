@@ -1,4 +1,4 @@
-import { computed, watch, onMounted, onUnmounted, Ref } from 'vue'
+import { computed, watch, onMounted, onUnmounted, Ref, toRaw, ref } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 
 export function useSidebarInteraction(
@@ -7,7 +7,7 @@ export function useSidebarInteraction(
 ) {
   const store = useSidebarStore()
 
-  // 常量定义
+  // Constants
   const START_W = 4
   let START_H = 64
   let TARGET_W = 400
@@ -15,7 +15,7 @@ export function useSidebarInteraction(
   const THRESHOLD = 60
   const VELOCITY_THRESHOLD = 0.3
 
-  // 拖拽相关状态 (水平展开)
+  // State
   let startX = 0
   let lastX = 0
   let lastTime = 0
@@ -25,54 +25,10 @@ export function useSidebarInteraction(
   let startTimeStamp = 0
   let lastResizeTime = 0
 
-  // 拖拽相关状态 (垂直移动)
   let isVerticalDragging = false
   let startY = 0
 
-  // 监听配置变化以更新常量
-  watch(
-    () => store.config,
-    (newConfig) => {
-      if (newConfig?.transforms) {
-        if (typeof newConfig.transforms.height === 'number') START_H = newConfig.transforms.height
-        if (typeof newConfig.transforms.width === 'number') TARGET_W = newConfig.transforms.width
-        
-        // 强制刷新尺寸逻辑
-        if (!store.isExpanded) {
-          window.electronAPI.resizeWindow(20, START_H + 40)
-        } else {
-          updateWindowSize(1)
-        }
-      }
-    },
-    { deep: true }
-  )
-
-  // 计算属性：进度 (0-1)
-  const progress = computed(() => {
-    if (TARGET_W === START_W) return 0
-    return Math.max(0, Math.min(1, (store.sidebarWidth - START_W) / (TARGET_W - START_W)))
-  })
-
-  // 计算样式
-  const sidebarStyle = computed(() => {
-    const p = progress.value
-    const currentRadius = 4 + 12 * p
-    const currentMargin = 6 + 6 * p
-
-    const gray = Math.floor(156 + (255 - 156) * p)
-    const baseOpacity = store.config?.transforms?.opacity ?? 0.95
-    const currentOpacity = 0.8 + (baseOpacity - 0.8) * p
-
-    return {
-      width: `${store.sidebarWidth}px`,
-      height: `${store.sidebarHeight}px`,
-      borderRadius: `${currentRadius}px`,
-      marginLeft: `${currentMargin}px`,
-      backgroundColor: `rgba(${gray}, ${gray}, ${gray}, ${currentOpacity})`,
-      transition: store.isDragging || animationId ? 'none' : undefined
-    }
-  })
+  const lastTransforms = ref<any>(null)
 
   function throttledResize(w: number, h: number, y: number) {
     const now = Date.now()
@@ -94,11 +50,18 @@ export function useSidebarInteraction(
       targetWinW = 20
       targetWinH = START_H + 40
     } else {
-      targetWinW = Math.floor(store.sidebarWidth + 100)
-      targetWinH = Math.floor(store.sidebarHeight + 100)
+      if (p >= 0.99) {
+          targetWinW = Math.floor(TARGET_W + 100)
+          targetWinH = Math.floor(TARGET_H + 100)
+      } else {
+          targetWinW = Math.floor(store.sidebarWidth + 100)
+          targetWinH = Math.floor(store.sidebarHeight + 100)
+      }
     }
 
-    const startCenterY = screenY + posy
+    // Correct calculation for startCenterY: screenY + half screen height + posy offset
+    const startCenterY = screenY + (screenH / 2) + posy
+    
     const safeCenterY = Math.max(
       screenY + TARGET_H / 2 + 20,
       Math.min(screenY + screenH - TARGET_H / 2 - 20, startCenterY)
@@ -106,12 +69,91 @@ export function useSidebarInteraction(
     const currentCenterY = startCenterY + (safeCenterY - startCenterY) * p
     const newWindowY = currentCenterY - targetWinH / 2
 
+    // console.log(`[RENDERER-DEBUG] updateWindowSize p=${p}. Target: ${targetWinW}x${targetWinH} at Y=${newWindowY}`)
+
     if (p === 0 || p === 1) {
       window.electronAPI.resizeWindow(targetWinW, targetWinH, newWindowY)
     } else {
       throttledResize(targetWinW, targetWinH, newWindowY)
     }
   }
+
+  // --- Watcher: Strict Control ---
+  watch(
+    () => store.config,
+    (newConfig) => {
+      if (!newConfig?.transforms) return
+
+      const newT = newConfig.transforms
+
+      if (!lastTransforms.value) {
+        console.log('[RENDERER-DEBUG] First load config:', JSON.stringify(newT))
+        lastTransforms.value = JSON.parse(JSON.stringify(newT))
+        if (typeof newT.height === 'number') START_H = newT.height
+        if (typeof newT.width === 'number') TARGET_W = newT.width
+        
+        if (!store.isExpanded) {
+            console.log('[RENDERER-DEBUG] First load: Forcing collapsed resize')
+            updateWindowSize(0)
+        }
+        return
+      }
+
+      const oldT = lastTransforms.value
+      
+      const heightChanged = newT.height !== oldT.height
+      const widthChanged = newT.width !== oldT.width
+      const displayChanged = newT.display !== oldT.display
+      const posyChanged = newT.posy !== oldT.posy
+
+      console.log(`[RENDERER-DEBUG] Config Changed. H:${heightChanged} W:${widthChanged} D:${displayChanged} PosY:${posyChanged}`)
+      
+      lastTransforms.value = JSON.parse(JSON.stringify(newT))
+      
+      if (typeof newT.height === 'number') START_H = newT.height
+      if (typeof newT.width === 'number') TARGET_W = newT.width
+
+      // Only resize if structural properties changed
+      if (heightChanged || widthChanged || displayChanged || posyChanged) {
+        console.log('[RENDERER-DEBUG] Structural change detected. Resizing...')
+        if (!store.isExpanded) {
+          updateWindowSize(0)
+        } else {
+          updateWindowSize(1)
+        }
+      } else {
+          // If no structural change, but we are collapsed, ensure sidebarWidth is correct
+          if (!store.isExpanded && store.sidebarWidth !== START_W) {
+              console.log('[RENDERER-DEBUG] Resetting sidebarWidth to START_W')
+              store.updateDimensions(START_W, START_H)
+          }
+      }
+    },
+    { deep: true, immediate: true }
+  )
+
+  const progress = computed(() => {
+    if (TARGET_W === START_W) return 0
+    return Math.max(0, Math.min(1, (store.sidebarWidth - START_W) / (TARGET_W - START_W)))
+  })
+
+  const sidebarStyle = computed(() => {
+    const p = progress.value
+    const currentRadius = 4 + 12 * p
+    const currentMargin = 6 + 6 * p
+    const gray = Math.floor(156 + (255 - 156) * p)
+    const baseOpacity = store.config?.transforms?.opacity ?? 0.95
+    const currentOpacity = 0.8 + (baseOpacity - 0.8) * p
+
+    return {
+      width: `${store.sidebarWidth}px`,
+      height: `${store.sidebarHeight}px`,
+      borderRadius: `${currentRadius}px`,
+      marginLeft: `${currentMargin}px`,
+      backgroundColor: `rgba(${gray}, ${gray}, ${gray}, ${currentOpacity})`,
+      transition: store.isDragging || animationId ? 'none' : undefined
+    }
+  })
 
   watch(
     () => store.sidebarWidth,
@@ -197,7 +239,8 @@ export function useSidebarInteraction(
       if (t >= 1) {
         store.updateDimensions(START_W, START_H)
         animationId = null
-        window.electronAPI.resizeWindow(20, START_H + 40)
+        // Force resize to collapsed state when animation finishes
+        updateWindowSize(0)
       } else {
         animationId = requestAnimationFrame(animate)
       }
@@ -213,7 +256,7 @@ export function useSidebarInteraction(
       target.tagName === 'A' ||
       !!target.closest('.launcher-item') ||
       !!target.closest('.volume-slider-container') ||
-      !!target.closest('.drag-handle') // 排除拖拽手柄
+      !!target.closest('.drag-handle')
     )
   }
 
@@ -306,32 +349,64 @@ export function useSidebarInteraction(
     }
   }
 
-  // --- 垂直拖拽逻辑 ---
   function onDragHandleMouseDown(e: MouseEvent) {
-    e.stopPropagation() // 防止触发水平拖拽
+    e.stopPropagation()
     isVerticalDragging = true
     startY = e.screenY
-    window.electronAPI.setIgnoreMouse(false, true) // 确保鼠标事件被捕获
+    window.electronAPI.setIgnoreMouse(false, true)
+    console.log('[RENDERER-DEBUG] Vertical Drag Start')
+  }
+
+  function onDragHandleTouchStart(e: TouchEvent) {
+    if (e.touches.length > 0) {
+      e.stopPropagation()
+      isVerticalDragging = true
+      startY = e.touches[0].screenY
+      window.electronAPI.setIgnoreMouse(false, true)
+      console.log('[RENDERER-DEBUG] Vertical Drag Start (Touch)')
+    }
   }
 
   function handleVerticalMove(currentY: number) {
     if (!isVerticalDragging) return
     const deltaY = currentY - startY
+    // Ensure deltaY is a valid number
+    if (isNaN(deltaY)) return
+
     window.electronAPI.moveWindow(deltaY)
-    startY = currentY // 更新基准点，因为窗口已经移动了
+    startY = currentY
   }
 
   async function handleVerticalEnd() {
     if (!isVerticalDragging) return
     isVerticalDragging = false
+    console.log('[RENDERER-DEBUG] Vertical Drag End')
     
-    // 拖拽结束，获取最新位置并保存
     if (store.config) {
         const newPosy = await window.electronAPI.getCurrentPosY()
-        // 更新本地 store (不触发 watch，因为我们只更新 posy)
-        store.config.transforms.posy = newPosy
-        // 保存到磁盘
-        await window.electronAPI.saveConfig(store.config)
+        console.log(`[RENDERER-DEBUG] New PosY from Main: ${newPosy}`)
+        
+        if (store.config.transforms) {
+            store.config.transforms.posy = newPosy
+            if (lastTransforms.value) {
+                lastTransforms.value.posy = newPosy
+            }
+        }
+
+        const configToSave = JSON.parse(JSON.stringify(toRaw(store.config)))
+        if ('displayBounds' in configToSave) {
+            delete configToSave.displayBounds
+        }
+        
+        console.log('[RENDERER-DEBUG] Saving config...')
+        await window.electronAPI.saveConfig(configToSave)
+        
+        // Force update window size to ensure it snaps to correct position
+        // This is crucial because after dragging, the window might be slightly off
+        // relative to the new posy if we don't re-calculate.
+        if (!store.isExpanded) {
+            updateWindowSize(0)
+        }
     }
   }
 
@@ -384,13 +459,21 @@ export function useSidebarInteraction(
   }
 
   const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length > 0 && store.isDragging) {
-      e.preventDefault()
-      handleMove(e.touches[0].screenX)
+    if (e.touches.length > 0) {
+      if (store.isDragging) {
+        e.preventDefault()
+        handleMove(e.touches[0].screenX)
+      } else if (isVerticalDragging) {
+        e.preventDefault()
+        handleVerticalMove(e.touches[0].screenY)
+      }
     }
   }
-  const onTouchEnd = (e: TouchEvent) =>
+  
+  const onTouchEnd = (e: TouchEvent) => {
     handleEnd(e.changedTouches.length > 0 ? e.changedTouches[0].screenX : null)
+    handleVerticalEnd()
+  }
   
   const onBlur = () => {
     if (store.isExpanded) collapse()
@@ -426,6 +509,7 @@ export function useSidebarInteraction(
     sidebarStyle,
     onWrapperMouseDown,
     onWrapperTouchStart,
-    onDragHandleMouseDown // 暴露给组件
+    onDragHandleMouseDown,
+    onDragHandleTouchStart
   }
 }

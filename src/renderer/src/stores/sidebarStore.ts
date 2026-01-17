@@ -37,13 +37,29 @@ export const useSidebarStore = defineStore('sidebar', () => {
 
         if (window.electronAPI.onConfigUpdated) {
             window.electronAPI.onConfigUpdated((newConfig: ExtendedAppSchema) => {
-                console.log('配置已更新', newConfig)
+                console.log('[DEBUG] 配置已更新', newConfig)
+                console.log('[DEBUG] isExpanded:', isExpanded.value)
+                console.log('[DEBUG] 当前 sidebarHeight:', sidebarHeight.value)
+                console.log('[DEBUG] 新配置 height:', newConfig.transforms?.height)
+
                 config.value = newConfig
+                // Only update sidebarHeight from config when NOT expanded
+                // When expanded, the height is controlled by the animation, not by config
                 if (newConfig.transforms && typeof newConfig.transforms.height === 'number') {
                     if (!isExpanded.value) {
+                        console.log('[DEBUG] 窗口未展开，更新 sidebarHeight 为配置值:', newConfig.transforms.height)
                         sidebarHeight.value = newConfig.transforms.height
+                    } else {
+                        // When expanded, ensure sidebarHeight is set to TARGET_H (450)
+                        // This prevents the window from collapsing to 64px after drag
+                        // However, we should be careful not to override if it's already correct
+                        if (sidebarHeight.value < 450) {
+                             console.log('[DEBUG] 窗口已展开但高度不正确，强制设置 sidebarHeight 为 450')
+                             sidebarHeight.value = 450
+                        }
                     }
                 }
+                console.log('[DEBUG] 更新后 sidebarHeight:', sidebarHeight.value)
             })
         }
     }
