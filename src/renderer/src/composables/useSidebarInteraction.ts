@@ -113,21 +113,20 @@ export function useSidebarInteraction(
       if (typeof newT.height === 'number') START_H = newT.height
       if (typeof newT.width === 'number') TARGET_W = newT.width
 
-      if (posyChanged && !heightChanged && !widthChanged && !displayChanged) {
-          // If only posy changed, we might want to update position if collapsed
-          if (!store.isExpanded) {
-              updateWindowSize(0)
-          }
-          return
-      }
-
-      if (heightChanged || widthChanged || displayChanged) {
+      // Only resize if structural properties changed
+      if (heightChanged || widthChanged || displayChanged || posyChanged) {
         console.log('[RENDERER-DEBUG] Structural change detected. Resizing...')
         if (!store.isExpanded) {
           updateWindowSize(0)
         } else {
           updateWindowSize(1)
         }
+      } else {
+          // If no structural change, but we are collapsed, ensure sidebarWidth is correct
+          if (!store.isExpanded && store.sidebarWidth !== START_W) {
+              console.log('[RENDERER-DEBUG] Resetting sidebarWidth to START_W')
+              store.updateDimensions(START_W, START_H)
+          }
       }
     },
     { deep: true, immediate: true }

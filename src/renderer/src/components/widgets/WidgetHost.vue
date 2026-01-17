@@ -33,6 +33,7 @@
             v-else-if="group.item.type === 'url'"
             :item="group.item"
             :widgetIndex="group.originalIndex"
+            class="layout-vertical"
           />
 
           <!-- Command -->
@@ -40,6 +41,7 @@
             v-else-if="group.item.type === 'command'"
             :item="group.item"
             :widgetIndex="group.originalIndex"
+            class="layout-vertical"
           />
 
           <!-- Volume Slider -->

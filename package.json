@@ -72,7 +72,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "resources/icon.ico"
+      "icon": "icons/icons.ico"
     },
     "nsis": {
       "oneClick": false,

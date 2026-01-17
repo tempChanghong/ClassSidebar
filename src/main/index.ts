@@ -94,7 +94,17 @@ function registerIpc(): void {
             store.set(newConfig);
             console.log('[IPC] Config saved successfully.');
             
-            sidebarWindow.win?.webContents.send('config-updated', newConfig)
+            // Re-calculate displayBounds to ensure renderer has the complete context
+            const config = store.store
+            const displays = screen.getAllDisplays()
+            const targetDisplay =
+                config.transforms.display < displays.length
+                    ? displays[config.transforms.display]
+                    : screen.getPrimaryDisplay()
+            
+            const configWithBounds = { ...config, displayBounds: targetDisplay.bounds }
+
+            sidebarWindow.win?.webContents.send('config-updated', configWithBounds)
             return { success: true }
         } catch (error) {
             console.error('[IPC] Failed to save config:', error);
@@ -114,13 +124,14 @@ function registerIpc(): void {
         if (!win) return null
         
         const properties = options?.properties || ['openFile']
+        const filters = options?.filters || [
+            { name: 'Applications', extensions: ['exe', 'lnk', 'url', 'bat', 'cmd'] },
+            { name: 'All Files', extensions: ['*'] }
+        ]
         
         const result = await dialog.showOpenDialog(win, {
             properties: properties,
-            filters: [
-                { name: 'Applications', extensions: ['exe', 'lnk', 'url', 'bat', 'cmd'] },
-                { name: 'All Files', extensions: ['*'] }
-            ]
+            filters: filters
         })
 
         if (!result.canceled && result.filePaths.length > 0) {
