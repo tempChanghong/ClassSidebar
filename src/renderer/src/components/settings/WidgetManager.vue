@@ -265,6 +265,7 @@
 import { ref, computed } from 'vue'
 import { useSidebarStore } from '../../stores/sidebarStore'
 import type { WidgetConfig } from '../../../../main/store'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   AppWindow,
   Volume2,
@@ -337,9 +338,25 @@ const getWidgetName = (widget: WidgetConfig) => {
 
 // --- Actions ---
 const deleteWidget = (id: string) => {
-  if (confirm('确定要删除这个组件吗？')) {
-    store.removeWidget(id)
-  }
+  ElMessageBox.confirm(
+    '确定要删除这个组件吗？此操作无法撤销。',
+    '删除确认',
+    {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(() => {
+      store.removeWidget(id)
+      ElMessage({
+        type: 'success',
+        message: '组件已删除',
+      })
+    })
+    .catch(() => {
+      // cancel
+    })
 }
 
 const openAddModal = () => {
@@ -412,12 +429,18 @@ const saveWidget = async () => {
 
   const finalWidget = { ...base, ...specificConfig }
 
-  if (isEditing.value && editingId.value) {
-    await store.updateWidget(editingId.value, finalWidget)
-  } else {
-    await store.addWidget(finalWidget as any)
+  try {
+    if (isEditing.value && editingId.value) {
+      await store.updateWidget(editingId.value, finalWidget)
+      ElMessage.success('组件已更新')
+    } else {
+      await store.addWidget(finalWidget as any)
+      ElMessage.success('组件已添加')
+    }
+    closeModal()
+  } catch (e) {
+    ElMessage.error('保存失败')
   }
-  closeModal()
 }
 
 // --- File Selection ---
