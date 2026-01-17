@@ -104,8 +104,23 @@ export class SidebarWindow {
 
     move(deltaY: number): void {
         if (!this.win) return
+        
+        // Robust check for deltaY
+        if (typeof deltaY !== 'number' || isNaN(deltaY) || !Number.isFinite(deltaY)) {
+            console.warn('[SidebarWindow] move() called with invalid deltaY:', deltaY)
+            return
+        }
+
         const bounds = this.win.getBounds()
-        this.win.setBounds({ y: bounds.y + deltaY })
+        // Use Math.round to avoid bias in negative directions and handle sub-pixel deltas better
+        const newY = Math.round(bounds.y + deltaY)
+        
+        if (isNaN(newY)) {
+             console.warn('[SidebarWindow] Calculated newY is NaN. bounds.y:', bounds.y, 'deltaY:', deltaY)
+             return
+        }
+
+        this.win.setBounds({ y: newY })
     }
     
     getCurrentPosY(): number {

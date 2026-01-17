@@ -358,10 +358,51 @@ export function useSidebarInteraction(
     console.log('[RENDERER-DEBUG] Vertical Drag Start')
   }
 
+  function onDragHandleTouchStart(e: TouchEvent) {
+    if (e.touches.length > 0) {
+      e.stopPropagation()
+      isVerticalDragging = true
+      startY = e.touches[0].screenY
+      window.electronAPI.setIgnoreMouse(false, true)
+      console.log('[RENDERER-DEBUG] Vertical Drag Start (Touch)')
+    }
+  }
+
   function handleVerticalMove(currentY: number) {
     if (!isVerticalDragging) return
     const deltaY = currentY - startY
+    // Ensure deltaY is a valid number
+    if (isNaN(deltaY)) return
+
     window.electronAPI.moveWindow(deltaY)
+    // IMPORTANT: Do NOT update startY here for absolute movement logic, 
+    // BUT for relative movement (delta), we MUST update startY.
+    // The issue "jittering" (抽搐) usually happens because of coordinate system mismatch 
+    // or because the window move happens asynchronously and the next event comes with old coordinates.
+    
+    // However, since we are calculating deltaY = currentY - startY, 
+    // if we update startY = currentY, we are doing incremental moves.
+    // If the window moves, the screen coordinates of the touch point MIGHT change relative to the screen?
+    // No, screenY is absolute to the screen.
+    
+    // The problem is likely that `moveWindow` is async (IPC) and by the time it applies,
+    // we might have received another event.
+    // But `screenY` from the event is absolute.
+    
+    // If we use `startY = currentY`, we are sending small deltas.
+    // If the window moves, the finger is still at the same `screenY`.
+    // So `currentY` (finger pos) changes smoothly.
+    // `startY` updates to `currentY`.
+    // `deltaY` is the difference.
+    
+    // The jitter might be caused by `Math.floor` in the main process combined with small deltas.
+    // Or it could be that `moveWindow` implementation in main process uses `bounds.y + deltaY`.
+    // If we send many small deltas, it should be fine, UNLESS:
+    // The touch event stream is noisy.
+    
+    // Let's try to throttle the vertical move events slightly or use a threshold?
+    // Or, maybe the issue is that we are updating startY too frequently?
+
     startY = currentY
   }
 
@@ -440,9 +481,14 @@ export function useSidebarInteraction(
   }
 
   const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length > 0 && store.isDragging) {
-      e.preventDefault()
-      handleMove(e.touches[0].screenX)
+    if (e.touches.length > 0) {
+      if (store.isDragging) {
+        e.preventDefault()
+        handleMove(e.touches[0].screenX)
+      } else if (isVerticalDragging) {
+        e.preventDefault()
+        handleVerticalMove(e.touches[0].screenY)
+      }
     }
   }
   
@@ -485,6 +531,7 @@ export function useSidebarInteraction(
     sidebarStyle,
     onWrapperMouseDown,
     onWrapperTouchStart,
-    onDragHandleMouseDown
+    onDragHandleMouseDown,
+    onDragHandleTouchStart
   }
 }

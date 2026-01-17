@@ -14,6 +14,7 @@
       <div
         class="drag-handle h-3 w-full flex items-center justify-center cursor-ns-resize hover:bg-black/5 transition-colors"
         @mousedown="onDragHandleMouseDown"
+        @touchstart="onDragHandleTouchStart"
       >
         <GripHorizontal class="w-4 h-4 text-slate-400" />
       </div>
@@ -56,7 +57,8 @@ const {
     sidebarStyle,
     onWrapperMouseDown,
     onWrapperTouchStart,
-    onDragHandleMouseDown
+    onDragHandleMouseDown,
+    onDragHandleTouchStart
 } = useSidebarInteraction(
   wrapperRef,
   sidebarRef

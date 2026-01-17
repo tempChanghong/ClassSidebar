@@ -94,13 +94,13 @@ html {
     position: relative;
     z-index: 1;
     opacity: 0;
-    padding: 20px;
+    padding: 16px;
     /* 收起时：透明度立即开始变化 (0s delay) */
     transition: opacity var(--content-duration) ease;
     color: #1f2937;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     width: 400px;
     box-sizing: border-box;
     /* 未展开时禁用交互 */
@@ -171,7 +171,7 @@ html {
 /* 标题样式 */
 h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 20px;
     color: #111827;
 }
 
@@ -187,7 +187,7 @@ p {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 /* 启动器分组样式 */
@@ -218,7 +218,7 @@ p {
     display: flex;
     align-items: center;
     background: rgba(243, 244, 246, 0.5);
-    border-radius: 12px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid rgba(0, 0, 0, 0.05);
@@ -226,7 +226,7 @@ p {
 }
 
 .layout-vertical .launcher-item {
-    padding: 8px 14px;
+    padding: 6px 12px;
     flex-direction: row;
 }
 
@@ -262,8 +262,8 @@ p {
 
 /* 图标容器样式 */
 .launcher-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -273,7 +273,7 @@ p {
 }
 
 .layout-vertical .launcher-icon {
-    margin-right: 12px;
+    margin-right: 10px;
 }
 
 .layout-grid .launcher-icon {
@@ -303,8 +303,8 @@ p {
 
 /* 启动器名称样式 */
 .launcher-name {
-    font-weight: 600;
-    font-size: 12px;
+    font-weight: 500;
+    font-size: 13px;
     /* 网格模式下文字更小 */
     color: #1f2937;
     white-space: nowrap;
@@ -314,34 +314,34 @@ p {
 }
 
 .layout-vertical .launcher-name {
-    font-size: 15px;
+    font-size: 14px;
 }
 
 /* 音量滑块样式 */
 .volume-slider-container {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 14px 18px;
+    gap: 6px;
+    padding: 10px 14px;
     background: rgba(243, 244, 246, 0.5);
-    border-radius: 16px;
+    border-radius: 12px;
     border: 1px solid rgba(0, 0, 0, 0.05);
-    margin-top: 8px;
+    margin-top: 4px;
     transition: all 0.2s ease;
 }
 
 .volume-slider-title {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
     color: #4b5563;
-    margin-bottom: 2px;
+    margin-bottom: 0;
     opacity: 0.8;
 }
 
 .volume-slider-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .volume-slider-container:hover {
@@ -363,7 +363,7 @@ p {
 .slider-wrapper {
     flex: 1;
     position: relative;
-    height: 24px;
+    height: 20px;
     display: flex;
     align-items: center;
 }
@@ -372,9 +372,9 @@ p {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
-    height: 6px;
+    height: 4px;
     background: #e5e7eb;
-    border-radius: 3px;
+    border-radius: 2px;
     outline: none;
     position: relative;
     z-index: 2;
@@ -385,12 +385,12 @@ p {
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
     background: #3b82f6;
     border-radius: 50%;
     cursor: pointer;
-    border: 3px solid #fff;
+    border: 2px solid #fff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -404,20 +404,20 @@ p {
 .slider-fill {
     position: absolute;
     left: 0;
-    top: 9px;
-    height: 6px;
+    top: 8px;
+    height: 4px;
     background: #3b82f6;
-    border-radius: 3px;
+    border-radius: 2px;
     z-index: 1;
     pointer-events: none;
     transition: background 0.2s ease;
 }
 
 .volume-value {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     color: #374151;
-    min-width: 45px;
+    min-width: 36px;
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
@@ -460,10 +460,11 @@ p {
 
 /* 拖拽启动组件样式 */
 .drag-to-launch {
-    padding: 12px;
+    padding: 10px;
     border: 2px dashed rgba(156, 163, 175, 0.4);
     background: rgba(243, 244, 246, 0.5);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 10px;
 }
 
 .drag-to-launch:hover {
@@ -479,7 +480,7 @@ p {
 }
 
 .drag-to-launch .launcher-icon-placeholder {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     color: #6b7280;
     transition: color 0.2s ease;
 }
