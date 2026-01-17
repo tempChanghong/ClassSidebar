@@ -18,14 +18,11 @@ export class SidebarWindow {
 
         const { x: screenX, y: screenY, height: screenHeight } = targetDisplay.bounds
         
-        // Initial setup: Collapsed state (20px width, config height)
         const initialHeight = transforms.height || 64 
         const initialWidth = 20 
 
-        // Initial Y Calculation (Only done once at creation)
         let yPos = Math.floor(screenY + (screenHeight / 2) + transforms.posy - (initialHeight / 2))
 
-        // Clamping
         if (yPos < screenY) yPos = screenY
         else if (yPos + initialHeight > screenY + screenHeight)
             yPos = screenY + screenHeight - initialHeight
@@ -69,6 +66,10 @@ export class SidebarWindow {
     resize(width: number, height: number, y?: number): void {
         if (!this.win) return
         
+        console.log(`[MAIN-DEBUG] resize() called. w=${width}, h=${height}, y=${y}`)
+        const currentBounds = this.win.getBounds()
+        console.log(`[MAIN-DEBUG] Current Bounds: x=${currentBounds.x}, y=${currentBounds.y}, w=${currentBounds.width}, h=${currentBounds.height}`)
+
         const config = store.store
         const transforms = config.transforms
         const displays = screen.getAllDisplays()
@@ -78,9 +79,6 @@ export class SidebarWindow {
                 : screen.getPrimaryDisplay()
         const { x: screenX, width: screenWidth, y: screenY, height: screenHeight } = targetDisplay.bounds
 
-        // --- SAFEGUARD ---
-        // If y is not provided, keep current Y. 
-        // NEVER recalculate using 'posy' here, as 'posy' might be stale relative to the UI state.
         let newY: number
         if (typeof y === 'number') {
             newY = y
@@ -88,12 +86,13 @@ export class SidebarWindow {
             newY = this.win.getBounds().y
         }
 
-        // Boundary Checks
         if (newY < screenY) newY = screenY
         else if (newY + height > screenY + screenHeight) newY = screenY + screenHeight - height
 
         let newX = screenX
         if (newX + width > screenX + screenWidth) newX = screenX + screenWidth - width
+
+        console.log(`[MAIN-DEBUG] Applying Bounds: x=${Math.floor(newX)}, y=${Math.floor(newY)}, w=${Math.floor(width)}, h=${Math.floor(height)}`)
 
         this.win.setBounds({
             width: Math.floor(width),

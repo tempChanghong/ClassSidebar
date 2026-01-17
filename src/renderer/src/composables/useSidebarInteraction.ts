@@ -28,7 +28,6 @@ export function useSidebarInteraction(
   let isVerticalDragging = false
   let startY = 0
 
-  // Local copy for strict diffing
   const lastTransforms = ref<any>(null)
 
   // --- Watcher: Strict Control ---
@@ -39,14 +38,14 @@ export function useSidebarInteraction(
 
       const newT = newConfig.transforms
 
-      // Initialize lastTransforms (First Load)
       if (!lastTransforms.value) {
+        console.log('[RENDERER-DEBUG] First load config:', JSON.stringify(newT))
         lastTransforms.value = JSON.parse(JSON.stringify(newT))
         if (typeof newT.height === 'number') START_H = newT.height
         if (typeof newT.width === 'number') TARGET_W = newT.width
         
-        // CRITICAL FIX: Force initial resize to correct any startup artifacts
         if (!store.isExpanded) {
+            console.log('[RENDERER-DEBUG] First load: Forcing collapsed resize')
             window.electronAPI.resizeWindow(20, START_H + 40)
         }
         return
@@ -54,32 +53,29 @@ export function useSidebarInteraction(
 
       const oldT = lastTransforms.value
       
-      // Detect changes
       const heightChanged = newT.height !== oldT.height
       const widthChanged = newT.width !== oldT.width
       const displayChanged = newT.display !== oldT.display
       const posyChanged = newT.posy !== oldT.posy
 
-      // Update local record
+      console.log(`[RENDERER-DEBUG] Config Changed. H:${heightChanged} W:${widthChanged} D:${displayChanged} PosY:${posyChanged}`)
+      console.log(`[RENDERER-DEBUG] Old PosY: ${oldT.posy}, New PosY: ${newT.posy}`)
+
       lastTransforms.value = JSON.parse(JSON.stringify(newT))
       
-      // Update constants
       if (typeof newT.height === 'number') START_H = newT.height
       if (typeof newT.width === 'number') TARGET_W = newT.width
 
-      // --- CRITICAL FIX ---
-      // If ONLY posy changed (drag), DO NOT RESIZE.
       if (posyChanged && !heightChanged && !widthChanged && !displayChanged) {
+          console.log('[RENDERER-DEBUG] Only PosY changed. IGNORING resize.')
           return
       }
 
-      // Only resize if structural properties changed
       if (heightChanged || widthChanged || displayChanged) {
+        console.log('[RENDERER-DEBUG] Structural change detected. Resizing...')
         if (!store.isExpanded) {
           window.electronAPI.resizeWindow(20, START_H + 40)
         } else {
-          // If expanded, we must be careful not to collapse the height
-          // if the config height (collapsed height) is small.
           updateWindowSize(1)
         }
       }
@@ -130,10 +126,6 @@ export function useSidebarInteraction(
       targetWinW = 20
       targetWinH = START_H + 40
     } else {
-      // --- CRITICAL FIX ---
-      // When expanded (p > 0), we MUST use the expanded dimensions.
-      // Do NOT rely on store.sidebarHeight blindly if p is 1, 
-      // because store.sidebarHeight might have been reset to 64 by a config update.
       if (p >= 0.99) {
           targetWinW = Math.floor(TARGET_W + 100)
           targetWinH = Math.floor(TARGET_H + 100)
@@ -151,6 +143,8 @@ export function useSidebarInteraction(
     const currentCenterY = startCenterY + (safeCenterY - startCenterY) * p
     const newWindowY = currentCenterY - targetWinH / 2
 
+    console.log(`[RENDERER-DEBUG] updateWindowSize p=${p}. Target: ${targetWinW}x${targetWinH} at Y=${newWindowY}`)
+
     if (p === 0 || p === 1) {
       window.electronAPI.resizeWindow(targetWinW, targetWinH, newWindowY)
     } else {
@@ -158,7 +152,6 @@ export function useSidebarInteraction(
     }
   }
 
-  // Width 变化时也触发一次 resize (处理动画过程中的高度同步)
   watch(
     () => store.sidebarWidth,
     () => {
@@ -352,12 +345,12 @@ export function useSidebarInteraction(
     }
   }
 
-  // --- Vertical Drag Logic ---
   function onDragHandleMouseDown(e: MouseEvent) {
     e.stopPropagation()
     isVerticalDragging = true
     startY = e.screenY
     window.electronAPI.setIgnoreMouse(false, true)
+    console.log('[RENDERER-DEBUG] Vertical Drag Start')
   }
 
   function handleVerticalMove(currentY: number) {
@@ -370,11 +363,12 @@ export function useSidebarInteraction(
   async function handleVerticalEnd() {
     if (!isVerticalDragging) return
     isVerticalDragging = false
+    console.log('[RENDERER-DEBUG] Vertical Drag End')
     
     if (store.config) {
         const newPosy = await window.electronAPI.getCurrentPosY()
+        console.log(`[RENDERER-DEBUG] New PosY from Main: ${newPosy}`)
         
-        // Sync local store AND lastTransforms to prevent watcher trigger
         if (store.config.transforms) {
             store.config.transforms.posy = newPosy
             if (lastTransforms.value) {
@@ -387,6 +381,7 @@ export function useSidebarInteraction(
             delete configToSave.displayBounds
         }
         
+        console.log('[RENDERER-DEBUG] Saving config...')
         await window.electronAPI.saveConfig(configToSave)
     }
   }
