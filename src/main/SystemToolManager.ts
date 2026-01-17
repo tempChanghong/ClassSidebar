@@ -94,37 +94,16 @@ export class SystemToolManager {
                     break;
                 case 'multitask':
                     // 模拟 Win+Tab 键
-                    // 使用 PowerShell 发送键盘快捷键
-                    // 注意：SendKeys 语法中 ^ 是 Ctrl, % 是 Alt, + 是 Shift, # 是 Win (但 WScript.Shell 不支持 Win 键)
-                    // Win+Tab 比较特殊，通常无法通过简单的 SendKeys 触发。
+                    // 方案 1: 使用 VBScript SendKeys (不支持 Win 键，放弃)
+                    // 方案 2: 使用 PowerShell + user32.dll (容易被杀软拦截，且不稳定)
+                    // 方案 3: 使用 explorer.exe shell:::{...} (最安全，最稳定)
                     
-                    // 最终方案：使用 robotjs (需要编译) 或者 简单的 C# 代码片段 via PowerShell。
-                    // 鉴于环境限制，我们尝试使用 PowerShell + Add-Type 调用 user32.dll keybd_event
+                    // 任务视图 (Task View) 的 CLSID 是 {3080F90E-D7AD-11D9-BD98-0000947B0257}
+                    // 注意：显示桌面是 {3080F90D-...}，任务视图是 {3080F90E-...} (最后一位 D -> E)
                     
-                    const psScript = `
-                    $code = @'
-                    [DllImport("user32.dll")]
-                    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
-                    '@
-                    $win32 = Add-Type -MemberDefinition $code -Name "Win32" -Namespace Win32 -PassThru
-                    
-                    # VK_LWIN = 0x5B
-                    # VK_TAB = 0x09
-                    # KEYEVENTF_KEYUP = 0x0002
-                    
-                    $win32::keybd_event(0x5B, 0, 0, 0) # Win Down
-                    $win32::keybd_event(0x09, 0, 0, 0) # Tab Down
-                    Start-Sleep -Milliseconds 200
-                    $win32::keybd_event(0x09, 0, 0x0002, 0) # Tab Up
-                    $win32::keybd_event(0x5B, 0, 0x0002, 0) # Win Up
-                    `;
-                    
-                    // 关键修改：使用 shell: true 确保 PowerShell 能够正确执行
-                    // 添加 -WindowStyle Hidden 隐藏窗口
-                    spawn('powershell', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', psScript], {
+                    spawn('explorer.exe', ['shell:::{3080F90E-D7AD-11D9-BD98-0000947B0257}'], { 
                         detached: true, 
-                        stdio: 'ignore',
-                        shell: true 
+                        stdio: 'ignore'
                     }).unref();
                     break;
                 case 'control-panel':
