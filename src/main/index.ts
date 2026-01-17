@@ -10,55 +10,17 @@ import {
     MenuItem,
     BrowserWindow
 } from 'electron'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { sidebarWindow } from './windows/SidebarWindow'
+import { settingsWindow } from './windows/SettingsWindow'
 import store, { AppSchema, WidgetConfig, LauncherWidgetConfig } from './store'
 import * as utils from './utils'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
-
-let settingsWindow: BrowserWindow | null = null
-
-function createSettingsWindow(): void {
-    if (settingsWindow && !settingsWindow.isDestroyed()) {
-        settingsWindow.focus()
-        return
-    }
-
-    settingsWindow = new BrowserWindow({
-        width: 800,
-        height: 600,
-        title: '设置',
-        frame: true,
-        transparent: false,
-        alwaysOnTop: false,
-        skipTaskbar: false,
-        resizable: true,
-        minimizable: true,
-        maximizable: true,
-        webPreferences: {
-            preload: path.join(__dirname, '../preload/index.js'),
-            sandbox: false,
-            contextIsolation: true,
-            nodeIntegration: false
-        },
-        autoHideMenuBar: true
-    })
-
-    settingsWindow.setMenuBarVisibility(false)
-
-    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-        settingsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/#/settings`)
-    } else {
-        settingsWindow.loadFile(path.join(__dirname, '../renderer/index.html'), { hash: 'settings' })
-    }
-
-    settingsWindow.on('closed', () => {
-        settingsWindow = null
-    })
-}
+import { trayManager } from './TrayManager'
+import { systemToolManager } from './SystemToolManager'
 
 // 这里是大部分 IPC 逻辑的迁移
 function registerIpc(): void {
@@ -120,7 +82,7 @@ function registerIpc(): void {
 
     // 打开文件选择对话框
     ipcMain.handle('open-file-dialog', async (_: IpcMainInvokeEvent, options?: any) => {
-        const win = settingsWindow || sidebarWindow.win
+        const win = settingsWindow.win || sidebarWindow.win
         if (!win) return null
         
         const properties = options?.properties || ['openFile']
@@ -275,7 +237,7 @@ function registerIpc(): void {
 
     // 打开设置窗口
     ipcMain.on('open-settings', () => {
-        createSettingsWindow()
+        settingsWindow.create()
     })
 
     // 获取开机自启设置
@@ -406,7 +368,7 @@ function registerIpc(): void {
                 new MenuItem({
                     label: '设置',
                     click: () => {
-                        createSettingsWindow()
+                        settingsWindow.create()
                     }
                 })
             )
@@ -520,23 +482,44 @@ function registerIpc(): void {
     })
 }
 
-app.whenReady().then(() => {
-    electronApp.setAppUserModelId('com.class.sidebar')
+// 确保单例锁
+const gotTheLock = app.requestSingleInstanceLock()
 
-    app.on('browser-window-created', (_, window) => {
-        optimizer.watchWindowShortcuts(window)
+if (!gotTheLock) {
+    app.quit()
+} else {
+    app.on('second-instance', (_event, _commandLine, _workingDirectory) => {
+        // 当运行第二个实例时，聚焦到主窗口
+        if (sidebarWindow.win) {
+            if (sidebarWindow.win.isMinimized()) sidebarWindow.win.restore()
+            sidebarWindow.win.show()
+            sidebarWindow.win.focus()
+        }
     })
 
-    registerIpc()
-    sidebarWindow.create()
+    app.whenReady().then(() => {
+        electronApp.setAppUserModelId('com.class.sidebar')
 
-    app.on('activate', function () {
-        if (sidebarWindow.win === null) sidebarWindow.create()
+        app.on('browser-window-created', (_, window) => {
+            optimizer.watchWindowShortcuts(window)
+        })
+
+        registerIpc()
+        // 显式调用注册 IPC
+        systemToolManager.registerIpc()
+        
+        sidebarWindow.create()
+        trayManager.init() // 初始化托盘
+
+        app.on('activate', function () {
+            if (sidebarWindow.win === null) sidebarWindow.create()
+        })
     })
-})
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
-})
+    app.on('window-all-closed', () => {
+        // 移除 app.quit()，因为我们希望应用在后台运行
+        // if (process.platform !== 'darwin') {
+        //     app.quit()
+        // }
+    })
+}

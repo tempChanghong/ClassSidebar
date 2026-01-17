@@ -105,6 +105,7 @@
               <option value="volume_slider">音量控制 (Volume)</option>
               <option value="files">文件夹 (Files)</option>
               <option value="drag_to_launch">拖拽启动 (Drag to Launch)</option>
+              <option value="system_tools">系统工具箱 (System Tools)</option>
             </select>
           </div>
 
@@ -239,6 +240,13 @@
             </div>
           </template>
 
+          <!-- System Tools -->
+          <template v-if="form.type === 'system_tools'">
+            <div class="p-3 bg-blue-50 text-blue-700 text-sm rounded-lg">
+              此组件将显示一组常用的系统工具，如任务管理器、注册表编辑器等。
+            </div>
+          </template>
+
         </div>
 
         <!-- Modal Footer -->
@@ -278,7 +286,8 @@ import {
   Plus,
   X,
   Globe,
-  Terminal
+  Terminal,
+  Settings
 } from 'lucide-vue-next'
 
 const store = useSidebarStore()
@@ -319,6 +328,7 @@ const getWidgetIcon = (type: string) => {
     case 'volume_slider': return Volume2
     case 'files': return FolderOpen
     case 'drag_to_launch': return MousePointerClick
+    case 'system_tools': return Settings
     default: return AppWindow
   }
 }
@@ -332,6 +342,7 @@ const getWidgetName = (widget: WidgetConfig) => {
     case 'volume_slider': return 'System Volume'
     case 'files': return 'Folder View'
     case 'drag_to_launch': return 'Drag to Launch'
+    case 'system_tools': return 'System Tools'
     default: return 'Widget'
   }
 }
@@ -424,6 +435,9 @@ const saveWidget = async () => {
       break
     case 'drag_to_launch':
       specificConfig = { command_template: form.value.command_template }
+      break
+    case 'system_tools':
+      specificConfig = {} // No specific config for now
       break
   }
 

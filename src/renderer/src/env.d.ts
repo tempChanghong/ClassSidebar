@@ -35,6 +35,9 @@ declare global {
       getLoginItemSettings: () => Promise<any>
       setLoginItemSettings: (settings: any) => Promise<any>
       openSettings: () => void
+      checkSystemCapability: (toolName: string) => Promise<boolean>
+      executeSystemTool: (toolName: string) => void
+      showToolboxMenu: () => void
     }
   }
 }
