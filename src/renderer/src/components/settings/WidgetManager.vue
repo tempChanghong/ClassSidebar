@@ -164,6 +164,14 @@
                />
                <p class="text-xs text-slate-500">多个参数请用空格分隔</p>
              </div>
+             <!-- Layout Option -->
+             <div class="space-y-1.5">
+               <label class="text-sm font-medium text-slate-700">布局模式</label>
+               <select v-model="form.layout" class="w-full rounded-lg border-slate-300 text-sm">
+                 <option value="vertical">垂直列表 (Vertical)</option>
+                 <option value="grid">网格布局 (Grid)</option>
+               </select>
+             </div>
           </template>
 
           <!-- URL -->
@@ -286,6 +294,7 @@ const form = ref<any>({
   icon: '',
   target: '',
   args: [],
+  layout: 'vertical', // Default layout
   url: '',
   command: '',
   shell: 'cmd',
@@ -343,6 +352,7 @@ const openAddModal = () => {
     icon: '',
     target: '',
     args: [],
+    layout: 'vertical',
     url: '',
     command: '',
     shell: 'cmd',
@@ -361,6 +371,7 @@ const openEditModal = (widget: WidgetConfig) => {
   // Ensure defaults for optional fields
   if (!form.value.args) form.value.args = []
   if (!form.value.shell) form.value.shell = 'cmd'
+  if (!form.value.layout) form.value.layout = 'vertical'
   showModal.value = true
 }
 
@@ -379,7 +390,11 @@ const saveWidget = async () => {
   let specificConfig = {}
   switch (form.value.type) {
     case 'launcher':
-      specificConfig = { target: form.value.target, args: form.value.args }
+      specificConfig = {
+        target: form.value.target,
+        args: form.value.args,
+        layout: form.value.layout
+      }
       break
     case 'url':
       specificConfig = { url: form.value.url }

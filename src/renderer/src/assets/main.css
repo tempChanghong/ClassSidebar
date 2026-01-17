@@ -225,9 +225,11 @@ p {
     box-sizing: border-box;
 }
 
-.layout-vertical .launcher-item {
-    padding: 6px 12px;
+/* 垂直布局优化 */
+.layout-vertical {
+    padding: 8px 12px; /* 增加垂直内边距 */
     flex-direction: row;
+    gap: 12px; /* 增加图标和文字的间距 */
 }
 
 .layout-grid .launcher-item {
@@ -272,8 +274,11 @@ p {
     flex-shrink: 0;
 }
 
+/* 垂直布局图标样式优化 */
 .layout-vertical .launcher-icon {
-    margin-right: 10px;
+    width: 32px; /* 稍微放大图标 */
+    height: 32px;
+    margin-right: 0; /* 间距由 gap 控制 */
 }
 
 .layout-grid .launcher-icon {
@@ -294,6 +299,7 @@ p {
 /* 启动器文本信息 */
 .launcher-info {
     flex: 1;
+    min-width: 0; /* 允许文本截断 */
 }
 
 .layout-grid_no_text .launcher-info {
@@ -313,8 +319,11 @@ p {
     max-width: 100%;
 }
 
+/* 垂直布局文字样式优化 */
 .layout-vertical .launcher-name {
     font-size: 14px;
+    font-weight: 600; /* 加粗文字 */
+    color: #374151;
 }
 
 /* 音量滑块样式 */
