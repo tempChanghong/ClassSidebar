@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, shell } from 'electron'
+import { BrowserWindow, screen, shell, app } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import store from '../store'
@@ -6,6 +6,16 @@ import store from '../store'
 export class SidebarWindow {
     public win: BrowserWindow | null = null
     private shouldAlwaysOnTop = true
+    private isQuitting = false
+    
+    public onShow: (() => void) | null = null
+    public onHide: (() => void) | null = null
+
+    constructor() {
+        app.on('before-quit', () => {
+            this.isQuitting = true
+        })
+    }
 
     create(): void {
         const config = store.store
@@ -55,6 +65,18 @@ export class SidebarWindow {
         }
 
         this.win.on('ready-to-show', () => this.win?.show())
+        
+        this.win.on('show', () => this.onShow?.())
+        this.win.on('hide', () => this.onHide?.())
+
+        this.win.on('close', (event) => {
+            if (!this.isQuitting) {
+                event.preventDefault()
+                this.win?.hide()
+            }
+            return false
+        })
+
         this.startAlwaysOnTopLoop()
 
         this.win.webContents.setWindowOpenHandler((details) => {
