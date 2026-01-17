@@ -78,5 +78,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setLoginItemSettings: (settings: Electron.Settings): Promise<Electron.LoginItemSettings> => ipcRenderer.invoke('set-login-item-settings', settings),
 
     // 打开设置窗口
-    openSettings: (): void => ipcRenderer.send('open-settings')
+    openSettings: (): void => ipcRenderer.send('open-settings'),
+
+    // 系统工具相关
+    checkSystemCapability: (toolName: string): Promise<boolean> => ipcRenderer.invoke('system:check-capability', toolName),
+    executeSystemTool: (toolName: string): void => ipcRenderer.send('system:execute-tool', toolName),
+    showToolboxMenu: (): void => ipcRenderer.send('system:show-toolbox-menu')
 })

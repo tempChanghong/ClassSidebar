@@ -53,6 +53,9 @@
           <!-- Drag to Launch -->
           <DragToLaunchWidget v-else-if="group.item.type === 'drag_to_launch'" :config="group.item" />
 
+          <!-- System Tools -->
+          <SystemToolsWidget v-else-if="group.item.type === 'system_tools'" :config="group.item" />
+
           <!-- Fallback -->
           <div v-else class="p-2 bg-red-50 text-red-500 text-xs rounded">
             Unknown type: {{ (group.item as any).type }}
@@ -80,6 +83,7 @@ import FilesWidget from './FilesWidget.vue'
 import DragToLaunchWidget from './DragToLaunchWidget.vue'
 import UrlWidget from './UrlWidget.vue'
 import CommandWidget from './CommandWidget.vue'
+import SystemToolsWidget from './SystemToolsWidget.vue'
 import type { WidgetConfig } from '../../../../main/store'
 
 const props = defineProps<{

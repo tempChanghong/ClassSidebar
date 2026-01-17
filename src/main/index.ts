@@ -10,7 +10,7 @@ import {
     MenuItem,
     BrowserWindow
 } from 'electron'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { sidebarWindow } from './windows/SidebarWindow'
 import { settingsWindow } from './windows/SettingsWindow'
 import store, { AppSchema, WidgetConfig, LauncherWidgetConfig } from './store'
@@ -20,6 +20,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import { trayManager } from './TrayManager'
+import { systemToolManager } from './SystemToolManager'
 
 // 这里是大部分 IPC 逻辑的迁移
 function registerIpc(): void {
@@ -487,7 +488,7 @@ const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
     app.quit()
 } else {
-    app.on('second-instance', (event, commandLine, workingDirectory) => {
+    app.on('second-instance', (_event, _commandLine, _workingDirectory) => {
         // 当运行第二个实例时，聚焦到主窗口
         if (sidebarWindow.win) {
             if (sidebarWindow.win.isMinimized()) sidebarWindow.win.restore()
@@ -504,6 +505,9 @@ if (!gotTheLock) {
         })
 
         registerIpc()
+        // 显式调用注册 IPC
+        systemToolManager.registerIpc()
+        
         sidebarWindow.create()
         trayManager.init() // 初始化托盘
 

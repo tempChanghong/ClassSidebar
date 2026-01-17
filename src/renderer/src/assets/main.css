@@ -498,3 +498,15 @@ p {
 .drag-to-launch.drag-over .launcher-icon-placeholder {
     color: #3b82f6;
 }
+
+/* 抽屉样式覆盖 */
+.drawer-content {
+    /* 确保抽屉在最上层 */
+    z-index: 9999 !important;
+}
+
+/* 修复抽屉按钮点击问题 */
+.system-tools-widget {
+    /* 确保按钮可点击 */
+    pointer-events: auto;
+}

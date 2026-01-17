@@ -1,4 +1,4 @@
-import { app, Menu, Tray, nativeImage, BrowserWindow } from 'electron'
+import { app, Menu, Tray, nativeImage } from 'electron'
 import * as path from 'path'
 import { sidebarWindow } from './windows/SidebarWindow'
 import { settingsWindow } from './windows/SettingsWindow'

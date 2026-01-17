@@ -21,6 +21,10 @@
 
     <!-- Tab: General -->
     <div v-if="currentTab === 'general'" class="space-y-6">
+      <SettingsSection title="快捷工具" description="常用系统工具快速入口">
+        <QuickActions />
+      </SettingsSection>
+
       <SettingsSection title="系统集成">
         <SettingsRow label="开机自启" description="随系统启动自动运行 ClassSidebar">
           <BaseSwitch v-model="autoLaunch" @update:model-value="toggleAutoLaunch" />
@@ -121,6 +125,7 @@ import SettingsRow from '../components/ui/SettingsRow.vue'
 import BaseSwitch from '../components/ui/BaseSwitch.vue'
 import BaseInput from '../components/ui/BaseInput.vue'
 import WidgetManager from '../components/settings/WidgetManager.vue'
+import QuickActions from '../components/settings/QuickActions.vue'
 import { useConfig } from '../composables/useConfig'
 import appIcon from '../assets/icons.png' // 恢复图片导入
 

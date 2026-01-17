@@ -2,7 +2,7 @@ import Store, { Schema } from 'electron-store'
 import { v4 as uuidv4 } from 'uuid'
 
 // --- Type Definitions ---
-export type WidgetType = 'launcher' | 'url' | 'command' | 'volume_slider' | 'files' | 'drag_to_launch';
+export type WidgetType = 'launcher' | 'url' | 'command' | 'volume_slider' | 'files' | 'drag_to_launch' | 'system_tools';
 
 export interface BaseWidget {
     id: string;
@@ -46,13 +46,20 @@ export interface DragToLaunchWidgetConfig extends BaseWidget {
     command_template?: string;
 }
 
+export interface SystemToolsWidgetConfig extends BaseWidget {
+    type: 'system_tools';
+    // 可以添加特定于系统工具箱的配置，例如默认展开状态等
+    defaultExpanded?: boolean;
+}
+
 export type WidgetConfig = 
     | LauncherWidgetConfig 
     | UrlWidgetConfig 
     | CommandWidgetConfig 
     | VolumeWidgetConfig
     | FilesWidgetConfig
-    | DragToLaunchWidgetConfig;
+    | DragToLaunchWidgetConfig
+    | SystemToolsWidgetConfig;
 
 export interface AppSchema {
     widgets: WidgetConfig[];
