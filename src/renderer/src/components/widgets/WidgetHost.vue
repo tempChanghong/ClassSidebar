@@ -42,9 +42,16 @@
            <DragToLaunchWidget :config="widget" />
         </div>
 
-        <!-- System Tools (Grid Item - acts like a folder) -->
+        <!-- System Tools -->
         <SystemToolsWidget
           v-else-if="widget.type === 'system_tools'"
+          :config="widget"
+          :class="widget.layout === 'vertical' ? 'col-span-full' : 'grid-item'"
+        />
+
+        <!-- Drawer Widget (New) -->
+        <ToolboxDrawerWidget
+          v-else-if="widget.type === 'drawer'"
           :config="widget"
           class="grid-item"
         />
@@ -75,6 +82,7 @@ import DragToLaunchWidget from './DragToLaunchWidget.vue'
 import UrlWidget from './UrlWidget.vue'
 import CommandWidget from './CommandWidget.vue'
 import SystemToolsWidget from './SystemToolsWidget.vue'
+import ToolboxDrawerWidget from './ToolboxDrawerWidget.vue'
 import type { WidgetConfig } from '../../../../main/store'
 
 defineProps<{

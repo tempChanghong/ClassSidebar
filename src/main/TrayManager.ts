@@ -48,15 +48,7 @@ export class TrayManager {
     updateContextMenu(): void {
         if (!this.tray) return
 
-        const isVisible = sidebarWindow.win?.isVisible()
-
         const contextMenu = Menu.buildFromTemplate([
-            {
-                label: isVisible ? '隐藏侧边栏' : '显示侧边栏',
-                click: () => {
-                    this.toggleWindow()
-                }
-            },
             {
                 label: '设置',
                 click: () => {

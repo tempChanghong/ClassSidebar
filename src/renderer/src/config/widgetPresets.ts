@@ -1,5 +1,9 @@
 import { WidgetConfig } from '../../../main/store'
 
+// 导入图标资源
+import ciIcon from '../assets/icons/ci.png'
+import secrandomIcon from '../assets/icons/secrandom.png'
+
 export interface WidgetPreset {
   id: string; // 预设的唯一标识，如 'ci-quick-swap'
   type: 'item' | 'group'; // 单个组件还是组合(抽屉)
@@ -26,7 +30,7 @@ export const widgetPresets: WidgetPreset[] = [
     category: 'ClassIsland',
     displayName: 'ClassIsland 工具组',
     description: '请确保已在 ClassIsland 设置中开启 URL 协议支持。',
-    iconPath: 'classisland-icon', // 占位符
+    iconPath: ciIcon, 
     children: [
       {
         id: 'ci-quick-swap',
@@ -66,7 +70,7 @@ export const widgetPresets: WidgetPreset[] = [
     category: 'SecRandom',
     displayName: 'SecRandom 工具组',
     description: '请确保已在 SecRandom 设置中开启 URL 协议支持。',
-    iconPath: 'secrandom-icon',
+    iconPath: secrandomIcon,
     children: [
       {
         id: 'sr-quick-draw',

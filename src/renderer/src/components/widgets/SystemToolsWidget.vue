@@ -3,7 +3,7 @@
     name="系统工具"
     title="系统工具箱"
     :layout="config.layout || 'grid'"
-    :class="['grid-item', { 'active': isOpen }]"
+    :class="[config.layout === 'vertical' ? 'col-span-full' : 'grid-item', { 'active': isOpen }]"
     @click="toggleDrawer"
   >
     <template #icon>
