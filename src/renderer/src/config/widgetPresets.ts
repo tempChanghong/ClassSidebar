@@ -1,5 +1,3 @@
-import { WidgetConfig } from '../../../main/store'
-
 // 导入图标资源
 import ciIcon from '../assets/icons/ci.png'
 import secrandomIcon from '../assets/icons/secrandom.png'
