@@ -1,7 +1,7 @@
 <template>
   <div class="toolbox-drawer-widget">
     <!-- 抽屉按钮 -->
-    <div 
+    <div
       class="toolbox-toggle"
       @click="toggleDrawer"
       :class="{ 'active': isOpen }"

@@ -165,14 +165,6 @@
                />
                <p class="text-xs text-slate-500">多个参数请用空格分隔</p>
              </div>
-             <!-- Layout Option -->
-             <div class="space-y-1.5">
-               <label class="text-sm font-medium text-slate-700">布局模式</label>
-               <select v-model="form.layout" class="w-full rounded-lg border-slate-300 text-sm">
-                 <option value="vertical">垂直列表 (Vertical)</option>
-                 <option value="grid">网格布局 (Grid)</option>
-               </select>
-             </div>
           </template>
 
           <!-- URL -->
@@ -247,6 +239,18 @@
             </div>
           </template>
 
+          <!-- Layout Option (Common for supported types) -->
+          <div v-if="['launcher', 'url', 'command', 'system_tools'].includes(form.type)" class="space-y-1.5 pt-2 border-t border-slate-100">
+             <label class="text-sm font-medium text-slate-700">布局模式</label>
+             <select v-model="form.layout" class="w-full rounded-lg border-slate-300 text-sm">
+               <option value="grid">网格布局 (Grid) - 紧凑图标</option>
+               <option value="vertical">垂直列表 (Vertical) - 详细信息</option>
+             </select>
+             <p class="text-xs text-slate-500">
+               {{ form.layout === 'grid' ? '显示为小图标，每行显示多个。' : '显示为长条形，占据整行宽度。' }}
+             </p>
+          </div>
+
         </div>
 
         <!-- Modal Footer -->
@@ -304,7 +308,7 @@ const form = ref<any>({
   icon: '',
   target: '',
   args: [],
-  layout: 'vertical', // Default layout
+  layout: 'grid', // Default layout
   url: '',
   command: '',
   shell: 'cmd',
@@ -380,7 +384,7 @@ const openAddModal = () => {
     icon: '',
     target: '',
     args: [],
-    layout: 'vertical',
+    layout: 'grid',
     url: '',
     command: '',
     shell: 'cmd',
@@ -399,7 +403,7 @@ const openEditModal = (widget: WidgetConfig) => {
   // Ensure defaults for optional fields
   if (!form.value.args) form.value.args = []
   if (!form.value.shell) form.value.shell = 'cmd'
-  if (!form.value.layout) form.value.layout = 'vertical'
+  if (!form.value.layout) form.value.layout = 'grid'
   showModal.value = true
 }
 
@@ -412,7 +416,8 @@ const saveWidget = async () => {
   const base = {
     type: form.value.type,
     name: form.value.name,
-    icon: form.value.icon
+    icon: form.value.icon,
+    layout: form.value.layout // Common layout property
   }
 
   let specificConfig = {}
@@ -420,8 +425,7 @@ const saveWidget = async () => {
     case 'launcher':
       specificConfig = {
         target: form.value.target,
-        args: form.value.args,
-        layout: form.value.layout
+        args: form.value.args
       }
       break
     case 'url':

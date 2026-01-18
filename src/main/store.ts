@@ -2,7 +2,7 @@ import Store, { Schema } from 'electron-store'
 import { v4 as uuidv4 } from 'uuid'
 
 // --- Type Definitions ---
-export type WidgetType = 'launcher' | 'url' | 'command' | 'volume_slider' | 'files' | 'drag_to_launch' | 'system_tools';
+export type WidgetType = 'launcher' | 'url' | 'command' | 'volume_slider' | 'files' | 'drag_to_launch' | 'system_tools' | 'drawer';
 
 export interface BaseWidget {
     id: string;
@@ -10,13 +10,14 @@ export interface BaseWidget {
     name: string;
     icon?: string;
     column?: number;
+    // 新增通用布局配置，允许用户决定显示模式
+    layout?: 'grid' | 'vertical'; 
 }
 
 export interface LauncherWidgetConfig extends BaseWidget {
     type: 'launcher';
     target?: string;
     args?: string[];
-    layout?: 'grid' | 'vertical'; 
     targets?: any[]; 
 }
 
@@ -52,6 +53,11 @@ export interface SystemToolsWidgetConfig extends BaseWidget {
     defaultExpanded?: boolean;
 }
 
+export interface DrawerWidgetConfig extends BaseWidget {
+    type: 'drawer';
+    children: WidgetConfig[];
+}
+
 export type WidgetConfig = 
     | LauncherWidgetConfig 
     | UrlWidgetConfig 
@@ -59,7 +65,8 @@ export type WidgetConfig =
     | VolumeWidgetConfig
     | FilesWidgetConfig
     | DragToLaunchWidgetConfig
-    | SystemToolsWidgetConfig;
+    | SystemToolsWidgetConfig
+    | DrawerWidgetConfig;
 
 export interface AppSchema {
     widgets: WidgetConfig[];
@@ -75,9 +82,9 @@ export interface AppSchema {
 
 // --- Default Configuration ---
 const defaultWidgets: WidgetConfig[] = [
-    { id: 'default-launcher-001', type: 'launcher', name: '文件资源管理器', target: 'explorer.exe', icon: 'folder' },
-    { id: 'default-url-001', type: 'url', name: 'Google', url: 'https://www.google.com', icon: 'globe' },
-    { id: 'default-command-001', type: 'command', name: '网络测试', command: 'ping google.com -t', shell: 'cmd', icon: 'terminal' },
+    { id: 'default-launcher-001', type: 'launcher', name: '文件资源管理器', target: 'explorer.exe', icon: 'folder', layout: 'vertical' },
+    { id: 'default-url-001', type: 'url', name: 'Google', url: 'https://www.google.com', icon: 'globe', layout: 'vertical' },
+    { id: 'default-command-001', type: 'command', name: '网络测试', command: 'ping google.com -t', shell: 'cmd', icon: 'terminal', layout: 'vertical' },
     { id: 'default-system-001', type: 'volume_slider', name: '系统音量', icon: 'volume-2' }
 ];
 

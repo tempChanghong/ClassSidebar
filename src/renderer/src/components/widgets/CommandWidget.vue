@@ -4,6 +4,7 @@
     :title="item.command"
     :icon="item.icon"
     :default-icon="Terminal"
+    :layout="item.layout || 'grid'"
     placeholder-class="bg-purple-100 text-purple-500"
     @click="handleClick"
     @contextmenu="handleContextMenu"

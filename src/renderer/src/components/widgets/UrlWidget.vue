@@ -4,6 +4,7 @@
     :title="item.url"
     :icon="item.icon"
     :default-icon="Globe"
+    :layout="item.layout || 'grid'"
     placeholder-class="bg-blue-100 text-blue-500"
     @click="handleClick"
     @contextmenu="handleContextMenu"

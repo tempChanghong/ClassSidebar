@@ -92,4 +92,23 @@ onMounted(() => {
     background: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
 }
+
+/* 全局网格布局样式 - 覆盖 WidgetHost 中的样式 */
+:deep(.widget-list) {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 强制3列 */
+  gap: 0.5rem; /* 调整间距 */
+  width: 100%;
+}
+
+/* 让某些组件跨越所有列 (如音量滑块、文件列表等) */
+:deep(.widget-wrapper) {
+  /* 默认情况下，每个 widget-wrapper 也是一个 grid item */
+  /* 如果需要特定组件占满一行，可以在这里或组件内部指定 */
+}
+
+/* 特殊处理：如果组件本身需要占满一行 */
+:deep(.col-span-full) {
+  grid-column: 1 / -1;
+}
 </style>

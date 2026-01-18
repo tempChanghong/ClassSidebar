@@ -4,6 +4,7 @@
     :title="item.name || item.target"
     :icon="iconSrc"
     :default-icon="AppWindow"
+    :layout="item.layout || 'grid'"
     placeholder-class="bg-slate-200 text-slate-400"
     @click="handleClick"
     @contextmenu="handleContextMenu"

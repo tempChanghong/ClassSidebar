@@ -2,7 +2,8 @@
   <BaseWidget
     name="系统工具"
     title="系统工具箱"
-    :class="['layout-vertical', { 'active': isOpen }]"
+    :layout="config.layout || 'grid'"
+    :class="['grid-item', { 'active': isOpen }]"
     @click="toggleDrawer"
   >
     <template #icon>
@@ -39,7 +40,7 @@
             </div>
 
             <div class="tool-icon" v-html="tool.icon"></div>
-            <span class="tool-label">{{ tool.label }}</span>
+            <span class="tool-label font-bold">{{ tool.label }}</span>
           </div>
         </div>
       </div>
