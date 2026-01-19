@@ -74,6 +74,32 @@ function registerIpc(): void {
         }
     })
 
+    // 重置配置 (新增)
+    ipcMain.handle('reset-config', (_: IpcMainInvokeEvent) => {
+        try {
+            store.clear(); // 清除所有配置
+            // 重新初始化默认值 (store.ts 中的 initDefaults 会在下次加载时自动处理，或者我们可以手动触发)
+            // 由于 store.ts 中的 initDefaults 是在模块加载时运行的，这里我们手动设置默认值
+            // 或者更简单地，直接重启应用，让 initDefaults 再次运行
+            // 但为了更好的体验，我们手动设置回默认值
+            
+            // 重新导入默认配置可能比较麻烦，因为它们在 store.ts 内部
+            // 最简单的方法是清空后重启，或者在 store.ts 暴露一个 reset 方法
+            // 这里我们选择清空，然后让前端触发重启
+            console.log('[IPC] Config reset.');
+            return { success: true };
+        } catch (error) {
+            console.error('[IPC] Failed to reset config:', error);
+            return { success: false, error: (error as Error).message };
+        }
+    })
+
+    // 重启应用 (新增)
+    ipcMain.on('relaunch-app', () => {
+        app.relaunch();
+        app.exit(0);
+    })
+
     ipcMain.handle('get-volume', (_: IpcMainInvokeEvent) => utils.getSystemVolume())
     ipcMain.on('set-volume', (_: IpcMainEvent, val: number) => utils.setSystemVolume(val))
 

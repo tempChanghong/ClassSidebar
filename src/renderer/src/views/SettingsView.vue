@@ -107,7 +107,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Settings,
   LayoutGrid,
@@ -190,7 +190,31 @@ const testLaunch = () => {
 }
 
 const resetConfig = () => {
-  ElMessage.warning('重置功能暂未完全实现')
+  ElMessageBox.confirm(
+    '此操作将清除所有自定义设置和组件，恢复到初始状态。确定要继续吗？',
+    '重置确认',
+    {
+      confirmButtonText: '确认重置',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  )
+    .then(async () => {
+      try {
+        await window.electronAPI.resetConfig()
+        ElMessage.success('应用已重置，正在重启...')
+        // 延迟一下让用户看到提示
+        setTimeout(() => {
+          window.electronAPI.relaunchApp()
+        }, 1500)
+      } catch (e) {
+        console.error('Reset failed:', e)
+        ElMessage.error('重置失败')
+      }
+    })
+    .catch(() => {
+      // cancel
+    })
 }
 
 const saveJsonConfig = async () => {

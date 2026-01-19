@@ -82,10 +82,19 @@ export interface AppSchema {
 
 // --- Default Configuration ---
 const defaultWidgets: WidgetConfig[] = [
+    // 1. 文件资源管理器（垂直布局）
     { id: 'default-launcher-001', type: 'launcher', name: '文件资源管理器', target: 'explorer.exe', icon: 'folder', layout: 'vertical' },
-    { id: 'default-url-001', type: 'url', name: 'Google', url: 'https://www.google.com', icon: 'globe', layout: 'vertical' },
-    { id: 'default-command-001', type: 'command', name: '网络测试', command: 'ping google.com -t', shell: 'cmd', icon: 'terminal', layout: 'vertical' },
-    { id: 'default-system-001', type: 'volume_slider', name: '系统音量', icon: 'volume-2' }
+    
+    // 2. 百度、文件传输助手、系统工具（网格布局）
+    { id: 'default-url-001', type: 'url', name: '百度', url: 'https://www.baidu.com', icon: 'globe', layout: 'grid' },
+    { id: 'default-url-002', type: 'url', name: '文件传输助手', url: 'https://filehelper.weixin.qq.com/', icon: 'message-square', layout: 'grid' },
+    { id: 'default-system-001', type: 'system_tools', name: '系统工具', icon: 'tool', layout: 'grid' },
+
+    // 3. 音量控制
+    { id: 'default-volume-001', type: 'volume_slider', name: '系统音量', icon: 'volume-2' },
+
+    // 4. 检测网络连接（垂直布局）
+    { id: 'default-command-001', type: 'command', name: '检测网络连接', command: 'ping baidu.com -t', shell: 'cmd', icon: 'wifi', layout: 'vertical' }
 ];
 
 const defaultTransforms = {

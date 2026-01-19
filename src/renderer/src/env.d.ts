@@ -16,6 +16,8 @@ declare global {
       setIgnoreMouse: (ignore: boolean, forward: boolean) => void
       getConfig: () => Promise<AppSchema>
       saveConfig: (newConfig: AppSchema) => Promise<{ success: boolean }>
+      resetConfig: () => Promise<{ success: boolean }>
+      relaunchApp: () => void
       onConfigUpdated: (callback: (newConfig: AppSchema) => void) => void
       addShortcut: (filePath: string) => Promise<{ success: boolean; error?: string }>
       openFileDialog: (options?: any) => Promise<string | null>
