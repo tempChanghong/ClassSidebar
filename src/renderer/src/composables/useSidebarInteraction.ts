@@ -256,7 +256,9 @@ export function useSidebarInteraction(
       target.tagName === 'A' ||
       !!target.closest('.launcher-item') ||
       !!target.closest('.volume-slider-container') ||
-      !!target.closest('.drag-handle')
+      !!target.closest('.drag-handle') ||
+      !!target.closest('.base-widget') || // Added base-widget
+      !!target.closest('.settings-button') // Added settings-button
     )
   }
 
@@ -269,7 +271,7 @@ export function useSidebarInteraction(
   function onWrapperTouchStart(e: TouchEvent) {
     if (e.touches.length > 0) {
       if (store.isExpanded && isInteractive(e.target)) return
-      e.preventDefault()
+      // e.preventDefault() // REMOVED: This prevents click events on touch devices
       handleStart(e.touches[0].screenX)
     }
   }
@@ -410,43 +412,11 @@ export function useSidebarInteraction(
     }
   }
 
-  function updateIgnoreMouse(e: MouseEvent) {
-    if (store.isDragging || animationId || isVerticalDragging) {
-      window.electronAPI.setIgnoreMouse(false, true)
-      return
-    }
-
-    let shouldIgnore = true
-    const clientX = e.clientX
-    const clientY = e.clientY
-
-    if (store.isExpanded) {
-      if (sidebarRef.value) {
-        const rect = sidebarRef.value.getBoundingClientRect()
-        if (
-          clientX >= rect.left &&
-          clientX <= rect.right &&
-          clientY >= rect.top &&
-          clientY <= rect.bottom
-        ) {
-          shouldIgnore = false
-        }
-      }
-    } else {
-      if (wrapperRef.value) {
-        const rect = wrapperRef.value.getBoundingClientRect()
-        if (
-          clientX >= rect.left &&
-          clientX <= rect.right &&
-          clientY >= rect.top &&
-          clientY <= rect.bottom
-        ) {
-          shouldIgnore = false
-        }
-      }
-    }
-    window.electronAPI.setIgnoreMouse(shouldIgnore, true)
-  }
+  // REMOVED: updateIgnoreMouse function and its usage
+  // This function was causing issues on touch screens by setting ignoreMouse to true
+  // when no mousemove event was detected (which is common on touch devices).
+  // Since the window size is now tightly controlled by updateWindowSize,
+  // we can safely allow the window to receive all mouse events.
 
   const onMouseMove = (e: MouseEvent) => {
       handleMove(e.screenX)
@@ -461,7 +431,7 @@ export function useSidebarInteraction(
   const onTouchMove = (e: TouchEvent) => {
     if (e.touches.length > 0) {
       if (store.isDragging) {
-        e.preventDefault()
+        // e.preventDefault() // REMOVED: Allow scrolling if needed, but might need to be careful
         handleMove(e.touches[0].screenX)
       } else if (isVerticalDragging) {
         e.preventDefault()
@@ -485,14 +455,21 @@ export function useSidebarInteraction(
   }
 
   onMounted(() => {
+    // Ensure window receives mouse events by default
+    window.electronAPI.setIgnoreMouse(false, true)
+
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('touchmove', onTouchMove, { passive: false })
     window.addEventListener('mouseup', onMouseUp)
     window.addEventListener('touchend', onTouchEnd)
     window.addEventListener('blur', onBlur)
     window.addEventListener('mousedown', onMouseDownGlobal)
-    window.addEventListener('mousemove', updateIgnoreMouse)
+    // REMOVED: window.addEventListener('mousemove', updateIgnoreMouse)
+    
+    // Keep mouseleave to allow clicking through when mouse leaves the window area (for PC)
     window.addEventListener('mouseleave', () => window.electronAPI.setIgnoreMouse(true, true))
+    // Add mouseenter to re-enable events when mouse enters (for PC)
+    window.addEventListener('mouseenter', () => window.electronAPI.setIgnoreMouse(false, true))
   })
 
   onUnmounted(() => {
@@ -502,7 +479,9 @@ export function useSidebarInteraction(
     window.removeEventListener('touchend', onTouchEnd)
     window.removeEventListener('blur', onBlur)
     window.removeEventListener('mousedown', onMouseDownGlobal)
-    window.removeEventListener('mousemove', updateIgnoreMouse)
+    // REMOVED: window.removeEventListener('mousemove', updateIgnoreMouse)
+    window.removeEventListener('mouseleave', () => window.electronAPI.setIgnoreMouse(true, true))
+    window.removeEventListener('mouseenter', () => window.electronAPI.setIgnoreMouse(false, true))
   })
 
   return {
