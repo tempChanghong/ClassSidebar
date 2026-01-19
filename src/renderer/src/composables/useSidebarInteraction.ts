@@ -24,6 +24,7 @@ export function useSidebarInteraction(
   let animationId: number | null = null
   let startTimeStamp = 0
   let lastResizeTime = 0
+  let isAnimating = false // Optimization: Prevent window resizing during animation
 
   let isVerticalDragging = false
   let startY = 0
@@ -158,7 +159,10 @@ export function useSidebarInteraction(
   watch(
     () => store.sidebarWidth,
     () => {
-      updateWindowSize(progress.value)
+      // Optimization: Do not resize window during animation to prevent lag
+      if (!isAnimating) {
+        updateWindowSize(progress.value)
+      }
     }
   )
 
@@ -166,6 +170,7 @@ export function useSidebarInteraction(
     if (animationId) {
       cancelAnimationFrame(animationId)
       animationId = null
+      isAnimating = false
     }
   }
 
@@ -183,6 +188,10 @@ export function useSidebarInteraction(
     store.setExpanded(true)
     document.body.classList.add('expanded')
 
+    // Optimization: Resize window to max immediately before animation
+    isAnimating = true
+    updateWindowSize(1)
+
     const speed = store.config?.transforms?.animation_speed || 1
     const duration = 300 / speed
     const startTime = performance.now()
@@ -192,6 +201,7 @@ export function useSidebarInteraction(
     function animate(currentTime: number) {
       if (!store.isExpanded) {
         animationId = null
+        isAnimating = false
         return
       }
       const elapsed = currentTime - startTime
@@ -205,6 +215,9 @@ export function useSidebarInteraction(
       if (t >= 1) {
         store.updateDimensions(TARGET_W, TARGET_H)
         animationId = null
+        isAnimating = false
+        // Ensure final state is correct
+        updateWindowSize(1)
       } else {
         animationId = requestAnimationFrame(animate)
       }
@@ -217,6 +230,10 @@ export function useSidebarInteraction(
     store.setExpanded(false)
     document.body.classList.remove('expanded')
 
+    // Optimization: Keep window size as is (likely max or current drag size) during animation
+    // Only resize to small AFTER animation finishes
+    isAnimating = true
+
     const speed = store.config?.transforms?.animation_speed || 1
     const duration = 300 / speed
     const startTime = performance.now()
@@ -226,6 +243,7 @@ export function useSidebarInteraction(
     function animate(currentTime: number) {
       if (store.isExpanded) {
         animationId = null
+        isAnimating = false
         return
       }
       const elapsed = currentTime - startTime
@@ -239,6 +257,7 @@ export function useSidebarInteraction(
       if (t >= 1) {
         store.updateDimensions(START_W, START_H)
         animationId = null
+        isAnimating = false
         // Force resize to collapsed state when animation finishes
         updateWindowSize(0)
       } else {
