@@ -1,7 +1,6 @@
 <template>
   <div
     class="sidebar-wrapper"
-    ref="wrapperRef"
     @mousedown="onWrapperMouseDown"
     @touchstart="onWrapperTouchStart"
   >
@@ -49,7 +48,7 @@ import { Settings, GripHorizontal } from 'lucide-vue-next'
 import { useSidebarInteraction } from '../composables/useSidebarInteraction'
 
 const store = useSidebarStore()
-const wrapperRef = ref<HTMLElement | null>(null)
+// const wrapperRef = ref<HTMLElement | null>(null) // Removed unused ref
 const sidebarRef = ref<HTMLElement | null>(null)
 
 // 使用 Composable 提取交互逻辑
@@ -60,7 +59,6 @@ const {
     onDragHandleMouseDown,
     onDragHandleTouchStart
 } = useSidebarInteraction(
-  wrapperRef,
   sidebarRef
 )
 

@@ -2,7 +2,7 @@ import { computed, watch, onMounted, onUnmounted, Ref, toRaw, ref } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 
 export function useSidebarInteraction(
-  wrapperRef: Ref<HTMLElement | null>,
+  // wrapperRef: Ref<HTMLElement | null>, // REMOVED: Unused
   sidebarRef: Ref<HTMLElement | null>
 ) {
   const store = useSidebarStore()

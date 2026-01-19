@@ -41,8 +41,9 @@
                  :title="child.name"
                >
                   <div class="tool-icon">
-                    <img v-if="child.icon && !child.icon.startsWith('fa-')" :src="child.icon" class="w-full h-full object-contain" />
+                    <img v-if="child.icon && !child.icon.startsWith('fa-') && (child.icon.includes('/') || child.icon.includes('.'))" :src="child.icon" class="w-full h-full object-contain" />
                     <i v-else-if="child.icon && child.icon.startsWith('fa-')" :class="child.icon"></i>
+                    <component v-else-if="child.icon && getIconComponent(child.icon)" :is="getIconComponent(child.icon)" class="w-full h-full" />
                     <component v-else :is="getIconForType(child.type)" class="w-full h-full" />
                   </div>
                   <span class="tool-label font-bold">{{ child.name }}</span>
@@ -65,7 +66,7 @@ import { Folder, X, Globe, AppWindow, Terminal, Volume2, MousePointerClick, Sett
 import type { DrawerWidgetConfig, WidgetConfig } from '../../../../main/store'
 import BaseWidget from './BaseWidget.vue'
 
-const props = defineProps<{
+defineProps<{
   config: DrawerWidgetConfig
 }>()
 
