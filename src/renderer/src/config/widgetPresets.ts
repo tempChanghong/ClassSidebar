@@ -41,7 +41,7 @@ export const widgetPresets: WidgetPreset[] = [
         defaultConfig: {
           url: 'classisland://app/class-swap',
           name: '快捷换课',
-          icon: 'refresh-cw'
+          icon: 'refresh-cw' // 这里使用的是 Lucide 图标名，不是图片路径
         }
       },
       {
@@ -55,7 +55,7 @@ export const widgetPresets: WidgetPreset[] = [
         defaultConfig: {
           url: 'classisland://app/profile/',
           name: '档案设置',
-          icon: 'user'
+          icon: 'user' // 这里使用的是 Lucide 图标名
         }
       }
     ]
@@ -81,7 +81,7 @@ export const widgetPresets: WidgetPreset[] = [
         defaultConfig: {
           url: 'secrandom://direct_extraction',
           name: '使用闪抽',
-          icon: 'zap'
+          icon: 'zap' // 这里使用的是 Lucide 图标名
         }
       },
       {
@@ -95,7 +95,7 @@ export const widgetPresets: WidgetPreset[] = [
         defaultConfig: {
           url: 'secrandom://pumping?action=start',
           name: '主界面抽取',
-          icon: 'play-circle'
+          icon: 'play-circle' // 这里使用的是 Lucide 图标名
         }
       }
     ]

@@ -61,7 +61,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Folder, X, Globe, AppWindow, Terminal, Volume2, MousePointerClick, Settings } from 'lucide-vue-next'
+import { Folder, X, Globe, AppWindow, Terminal, Volume2, MousePointerClick, Settings, RefreshCw, User, Zap, PlayCircle } from 'lucide-vue-next'
 import type { DrawerWidgetConfig, WidgetConfig } from '../../../../main/store'
 import BaseWidget from './BaseWidget.vue'
 
@@ -84,6 +84,19 @@ const getIconForType = (type: string) => {
     case 'drag_to_launch': return MousePointerClick
     case 'system_tools': return Settings
     default: return AppWindow
+  }
+}
+
+// Helper to map icon names (from presets) to Lucide components
+// This is needed because we store icon names as strings in the config for presets
+const getIconComponent = (iconName: string) => {
+  switch (iconName) {
+    case 'refresh-cw': return RefreshCw
+    case 'user': return User
+    case 'zap': return Zap
+    case 'play-circle': return PlayCircle
+    case 'tool': return Settings
+    default: return null
   }
 }
 
