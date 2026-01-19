@@ -8,7 +8,7 @@ export function useSidebarInteraction(
   const store = useSidebarStore()
 
   // Constants
-  const START_W = 4
+  const START_W = 8 // Increased from 4 to 8 for better touch target
   let START_H = 64
   let TARGET_W = 400
   const TARGET_H = 450
@@ -48,7 +48,7 @@ export function useSidebarInteraction(
     let targetWinW: number, targetWinH: number
 
     if (p <= 0) {
-      targetWinW = 20
+      targetWinW = 20 // Keep this slightly larger than START_W for hit testing
       targetWinH = START_H + 40
     } else {
       if (p >= 0.99) {

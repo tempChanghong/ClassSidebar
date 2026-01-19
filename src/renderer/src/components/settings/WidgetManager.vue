@@ -193,7 +193,7 @@
               <option value="files">文件夹 (Files)</option>
               <option value="drag_to_launch">拖拽启动 (Drag to Launch)</option>
               <option value="system_tools">系统工具箱 (System Tools)</option>
-              <!-- Drawer is usually added via Library, but can be edited here if needed, though complex -->
+              <option value="drawer">抽屉容器 (Drawer)</option> <!-- Added Drawer Option -->
             </select>
           </div>
 
@@ -327,8 +327,15 @@
             </div>
           </template>
 
+          <!-- Drawer -->
+          <template v-if="form.type === 'drawer'">
+            <div class="p-3 bg-amber-50 text-amber-700 text-sm rounded-lg">
+              抽屉组件可以容纳多个子组件。目前仅支持通过“组件库”添加预设内容，或创建空抽屉后手动管理（暂未开放手动添加子项UI）。
+            </div>
+          </template>
+
           <!-- Layout Option (Common for supported types) -->
-          <div v-if="['launcher', 'url', 'command', 'system_tools'].includes(form.type)" class="space-y-1.5 pt-2 border-t border-slate-100">
+          <div v-if="['launcher', 'url', 'command', 'system_tools', 'drawer'].includes(form.type)" class="space-y-1.5 pt-2 border-t border-slate-100">
              <label class="text-sm font-medium text-slate-700">布局模式</label>
              <select v-model="form.layout" class="w-full rounded-lg border-slate-300 text-sm">
                <option value="grid">网格布局 (Grid) - 紧凑图标</option>
@@ -409,7 +416,8 @@ const form = ref<any>({
   shell: 'cmd',
   folder_path: '',
   max_count: 10,
-  command_template: '"{path}"'
+  command_template: '"{path}"',
+  children: [] // For drawer
 })
 
 // Helper for args array <-> string
@@ -508,7 +516,8 @@ const openAddModal = () => {
     shell: 'cmd',
     folder_path: '',
     max_count: 10,
-    command_template: '"{path}"'
+    command_template: '"{path}"',
+    children: []
   }
   showModal.value = true
 }
@@ -522,6 +531,7 @@ const openEditModal = (widget: WidgetConfig) => {
   if (!form.value.args) form.value.args = []
   if (!form.value.shell) form.value.shell = 'cmd'
   if (!form.value.layout) form.value.layout = 'grid'
+  if (!form.value.children) form.value.children = []
   showModal.value = true
 }
 
@@ -560,6 +570,9 @@ const saveWidget = async () => {
       break
     case 'system_tools':
       specificConfig = {} // No specific config for now
+      break
+    case 'drawer':
+      specificConfig = { children: form.value.children || [] }
       break
   }
 
