@@ -83,5 +83,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // 系统工具相关
     checkSystemCapability: (toolName: string): Promise<boolean> => ipcRenderer.invoke('system:check-capability', toolName),
     executeSystemTool: (toolName: string): void => ipcRenderer.send('system:execute-tool', toolName),
-    showToolboxMenu: (): void => ipcRenderer.send('system:show-toolbox-menu')
+    // Open log directory
+    openLogDirectory: (): Promise<void> => ipcRenderer.invoke('logs:open-directory'),
+    // Set log level
+    setLogLevel: (level: string): Promise<void> => ipcRenderer.invoke('logs:set-level', level),
+    // Clear logs
+    clearLogs: (): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('logs:clear')
 })

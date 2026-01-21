@@ -78,6 +78,7 @@ export interface AppSchema {
         opacity: number;
         animation_speed: number;
     };
+    logLevel: string;
 }
 
 // --- Default Configuration ---
@@ -133,6 +134,10 @@ const schema: Schema<AppSchema> = {
             opacity: { type: 'number' },
             animation_speed: { type: 'number' }
         }
+    },
+    logLevel: {
+        type: 'string',
+        default: 'info'
     }
 };
 

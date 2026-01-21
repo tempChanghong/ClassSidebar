@@ -1,10 +1,12 @@
-# 📄 日志系统功能规划 (Logging System Plan)
+# 📄 日志系统功能开发规划 (Gemini Code Assist 驱动)
 
 ## 1. 概述 (Overview)
 
-为 `ClassSidebar` 应用设计并实现一个全面、可靠的日志系统。该系统旨在集中收集来自主进程 (Main Process) 和渲染进程 (Renderer Process) 的日志信息，将其输出到本地文件，并提供便捷的日志查看与管理功能。这将极大地提升开发调试效率和用户支持能力。
+为 `ClassSidebar` 应用设计并实现一个全面、可靠的日志系统。本项目将**利用 Gemini Code Assist (GCA)** 来显著加速开发进程。
 
-本项目推荐使用 `electron-log` 作为核心日志库，它专为 Electron 应用设计，功能强大且易于集成。
+该系统旨在集中收集来自主进程 (Main Process) 和渲染进程 (Renderer Process) 的日志信息，将其输出到本地文件，并提供便捷的日志查看与管理功能。这将极大地提升开发调试效率和用户支持能力。
+
+本项目依然推荐使用 `electron-log` 作为核心日志库，它专为 Electron 应用设计，功能强大且易于集成。我们将借助 GCA 来生成配置代码、实现 IPC 通信和创建 UI 组件。
 
 ## 2. 用户故事 (User Stories)
 
@@ -19,83 +21,135 @@
 *   **统一日志目标**: 主进程和所有渲染进程的日志均写入到同一个文件中。
 *   **多级日志**: 支持标准日志级别：`error`, `warn`, `info`, `verbose`, `debug`。
 *   **文件存储**:
-    *   日志文件存储于用户数据目录 (`%APPDATA%/class-sidebar/logs/`)，避免权限问题。
+    *   日志文件存储于用户数据目录 (`%APPDATA%/class-sidebar/logs/`)。
     *   默认文件名为 `main.log`。
-*   **日志轮转 (Rotation)**: 当单个日志文件达到预设大小（如 2MB）时，自动将其重命名为 `main.old.log` 并创建新的日志文件，防止日志文件无限增大。
-*   **自动异常捕获**: 自动记录主进程和渲染进程中所有未处理的异常和 Promise rejections。
-*   **日志格式**: 每条日志应包含 `[时间戳] [级别] [进程名] 内容`，例如：
-    `[2026-01-19 15:30:00.123] [info] [main] SystemToolManager: Executing tool 'taskmgr'`
+*   **日志轮转 (Rotation)**: 当单个日志文件达到 2MB 时，自动重命名为 `main.old.log`。
+*   **自动异常捕获**: 自动记录所有未处理的异常和 Promise rejections。
+*   **日志格式**: `[时间戳] [级别] [进程名] 内容`。
 
 ### 3.2 UI 集成
-*   在“设置”页面的“系统工具箱”下方或新的“关于”页面，添加一个“日志与诊断”区域。
-*   该区域包含一个按钮：**“打开日志目录 (Open Log Directory)”**。
-*   点击该按钮，应通过主进程调用 `shell.openPath()` 打开日志文件所在的文件夹。
+*   在“设置”页面添加“打开日志目录”按钮。
+*   点击按钮通过主进程调用 `shell.openPath()` 打开日志文件夹。
 
 ## 4. 技术架构 (Technical Architecture)
 
-### 4.1 核心库
-*   **`electron-log`**: 应用的核心日志库。
-    *   主进程中使用 `electron-log`。
-    *   渲染进程中使用 `electron-log/renderer`，它通过 IPC 将日志消息发送到主进程进行处理和写入。
+*   **核心库**: `electron-log`
+*   **开发助理**: **Gemini Code Assist (GCA)**
+*   **实现方式**:
+    *   主进程创建 `Logger.ts` 模块，使用 GCA 生成初始化配置代码。
+    *   渲染进程使用 `electron-log/renderer` 通过 IPC 将日志发送到主进程。
+    *   通过 IPC 实现从渲染进程到主进程的通信，以触发“打开日志目录”操作。
 
-### 4.2 模块化设计
-建议在主进程中创建一个 `Logger.ts` 模块，用于统一配置和初始化 `electron-log`。
+---
 
-```typescript
-// src/main/Logger.ts (伪代码)
-import log from 'electron-log';
-import { app } from 'electron';
-import path from 'path';
+## 5. 详细开发步骤 (Step-by-Step Development Plan)
 
-export function initializeLogger() {
-  // 1. 配置日志文件路径
-  log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log');
+本部分将指导您如何使用 Gemini Code Assist (GCA) 高效完成日志系统的开发。
 
-  // 2. 配置日志格式
-  log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] [{processType}] {text}';
+### **步骤 1: 环境准备**
 
-  // 3. 设置文件大小上限 (2MB)
-  log.transports.file.maxSize = 2 * 1024 * 1024;
+首先，将 `electron-log` 添加到项目依赖中。在终端中运行以下命令：
 
-  // 4. 设置日志级别 (开发环境 debug, 生产环境 info)
-  log.transports.file.level = app.isPackaged ? 'info' : 'debug';
-  log.transports.console.level = app.isPackaged ? 'info' : 'debug';
-
-  // 5. 捕获全局未处理异常
-  log.catchErrors();
-
-  // 6. 替换 console.log 等
-  Object.assign(console, log.functions);
-
-  log.info('Logger initialized.');
-}
+```bash
+npm install electron-log
 ```
 
-### 4.3 IPC 通信
-*   创建一个新的 IPC 通道 `logs:open-directory`。
-*   前端（设置页面）点击按钮时，调用 `window.electronAPI.openLogDirectory()`。
-*   主进程监听该事件，并使用 `shell.openPath(log.transports.file.getFile().path)` 打开日志文件所在的目录。
+### **步骤 2: 创建主进程日志模块 (GCA)**
 
-## 5. 开发任务清单 (Task List)
+1.  在 `src/main/` 目录下创建一个新文件，命名为 `Logger.ts`。
+2.  打开 `Logger.ts` 文件，然后打开 GCA 聊天窗口，发送以下 **prompt**：
 
-- [ ] **环境准备**:
-    - [ ] 安装依赖: `npm install electron-log`
-- [ ] **主进程 (Main Process)**:
-    - [ ] 创建 `src/main/Logger.ts` 模块并实现 `initializeLogger` 函数。
-    - [ ] 在主入口文件 (`background.ts`) 的 `app.whenReady()` 中调用 `initializeLogger()`。
-    - [ ] 实现 `logs:open-directory` 的 IPC Handler。
-    - [ ] 将现有代码中的关键 `console.log` 替换为 `log.info`, `log.warn`, `log.error`。
-- [ ] **渲染进程 (Renderer Process)**:
-    - [ ] 在 `preload` 脚本中暴露 `openLogDirectory` API。
-    - [ ] 在 `QuickActions.vue` 或新建的组件中，添加“打开日志目录”按钮及其点击事件。
-    - [ ] (可选) 创建一个 `src/renderer/src/utils/logger.ts` 模块，封装 `electron-log/renderer`，方便在 Vue 组件中统一调用。
-- [ ] **测试**:
-    - [ ] 启动应用，确认日志文件已在 `%APPDATA%/class-sidebar/logs/` 目录下创建。
-    - [ ] 在主进程和渲染进程中分别触发日志记录，检查日志文件内容和格式是否正确。
-    - [ ] 在设置页面点击按钮，验证是否能正确打开日志目录。
-    - [ ] 故意制造一个未捕获的异常，检查是否被 `log.catchErrors()` 捕获并记录。
+    > **Prompt for GCA:**
+    >
+    > "请为 `electron-log` 库编写一个初始化函数 `initializeLogger`。
+    >
+    > 要求如下：
+    > 1.  所有日志（包括主进程和渲染进程）都写入到单个文件。
+    > 2.  日志文件路径为用户数据目录下的 `logs/main.log`。
+    > 3.  日志格式为 `[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] [{processType}] {text}`。
+    > 4.  日志文件最大为 2MB，超过后自动轮转。
+    > 5.  在生产环境中，日志级别为 `info`；在开发环境中，级别为 `debug`。同时设置控制台的日志级别。
+    > 6.  自动捕获所有未处理的异常和 Promise rejections。
+    > 7.  将 `console.log` 等函数重定向到 `electron-log`。
+    > 8.  在函数末尾打印一条 "Logger initialized." 的信息日志。
+    > 9.  使用 TypeScript 编写，并导出该函数。"
 
-## 6. 注意事项 (Notes)
-*   **隐私安全**: 绝对不要记录任何敏感信息，如用户密码、API 密钥或详细的文件路径。
-*   **性能**: 在生产环境中，应将日志级别设置为 `info` 或 `warn`，避免 `debug` 级别的日志过多影响性能。
-*   **日志清理**: 规划中只保留一个旧日志 (`.old.log`)，对于长期运行的应用，未来可考虑实现更复杂的归档策略（如保留最近7天的日志）。
+3.  将 GCA 生成的代码粘贴到 `Logger.ts` 文件中并保存。
+
+### **步骤 3: 在主进程中集成日志模块 (GCA)**
+
+1.  打开主进程入口文件 `src/main/background.ts`。
+2.  选中 `app.whenReady()` 函数体内的代码，使用快捷键 `Ctrl+I` (或右键选择 "Gemini -> Edit Selected Code") 启动内联编辑。
+3.  在内联编辑框中输入以下 **prompt**：
+
+    > **Prompt for GCA:**
+    >
+    > "在这些代码的最开始，从 `./Logger` 导入 `initializeLogger` 函数，并立即调用它。"
+
+4.  GCA 将会自动在 `app.whenReady()` 的开头添加 `initializeLogger()` 的调用。审查并接受更改。
+
+### **步骤 4: 实现 IPC 通信 (GCA)**
+
+#### 4.1 主进程 Handler
+
+1.  继续在 `src/main/background.ts` 文件中工作。
+2.  找到处理 IPC 事件的区域（如果没有，可以在文件末尾添加）。
+3.  使用 GCA 聊天窗口，发送以下 **prompt**：
+
+    > **Prompt for GCA:**
+    >
+    > "为 Electron 创建一个 IPC Handler，监听名为 `logs:open-directory` 的通道。当收到事件时，使用 `shell.openPath` 打开 `electron-log` 当前正在使用的日志文件所在的目录。确保从 `electron-log` 和 `electron` 导入所需模块。"
+
+4.  将生成的 `ipcMain.handle(...)` 代码段粘贴到 `background.ts` 中。
+
+#### 4.2 Preload 脚本
+
+1.  打开 `src/preload/index.ts` 文件。
+2.  使用 GCA 聊天窗口，发送以下 **prompt**：
+
+    > **Prompt for GCA:**
+    >
+    > "在 Electron 的 preload 脚本中，扩展 `contextBridge.exposeInMainWorld` 的 `electronAPI` 对象，添加一个名为 `openLogDirectory` 的异步函数，该函数调用 `ipcRenderer.invoke('logs:open-directory')`。"
+
+3.  将 GCA 生成的代码合并到现有的 `contextBridge` 调用中。
+
+### **步骤 5: 前端 UI 实现 (GCA)**
+
+1.  定位到你想要添加按钮的 Vue 组件，例如 `src/renderer/src/components/QuickActions.vue`。
+2.  选中该组件的 `<template>` 部分，启动内联编辑 (`Ctrl+I`)，输入 **prompt**：
+
+    > **Prompt for GCA:**
+    >
+    > "在这里添加一个新的按钮，文本为‘打开日志目录’。"
+
+3.  接下来，选中 `<script setup>` 部分，启动内联编辑，输入 **prompt**：
+
+    > **Prompt for GCA:**
+    >
+    > "为‘打开日志目录’按钮创建一个点击事件处理函数。该函数调用 `window.electronAPI.openLogDirectory()`。"
+
+4.  将模板中新生成的按钮与脚本中的处理函数关联起来（例如，使用 `@click`）。
+
+### **步骤 6: 测试与验证**
+
+1.  **启动应用**: 运行 `npm run dev`。
+2.  **检查日志文件**:
+    *   导航到应用的 `userData` 目录（通常在 `C:\Users\<YourUser>\AppData\Roaming\class-sidebar`）。
+    *   确认 `logs/main.log` 文件已被创建。
+    *   检查文件内容，应包含 "Logger initialized." 信息，并且格式正确。
+3.  **触发日志**:
+    *   在主进程和渲染进程代码中临时添加 `console.log('test from main')` 和 `console.log('test from renderer')`。
+    *   刷新应用并检查 `main.log` 文件，确认两条新日志都已按正确格式记录。
+4.  **测试 UI 按钮**:
+    *   前往设置页面，点击“打开日志目录”按钮。
+    *   验证系统文件浏览器是否成功打开了 `logs` 文件夹。
+5.  **测试异常捕获**:
+    *   在任意组件的 `onMounted` 或方法中故意引入一个错误，例如 `throw new Error('Test unhandled exception')`。
+    *   重新加载应用，检查 `main.log` 文件中是否记录了该异常的堆栈跟踪信息。
+
+## 6. Gemini Code Assist 使用技巧
+
+*   **生成代码**: 对于新功能或模块，直接在聊天中描述需求，让 GCA 生成完整的代码框架。
+*   **内联编辑**: 对于现有代码的修改（如添加函数调用、重构），选中代码后按 `Ctrl+I` 是最高效的方式。
+*   **解释代码**: 如果对 GCA 生成的或项目中的现有代码不理解，可以选中后在聊天中提问“解释这段代码”。
+*   **迭代优化**: 如果 GCA 第一次生成的结果不完美，不要放弃。继续在聊天中提出修改要求，例如“把这个改成异步函数”或“添加错误处理”。

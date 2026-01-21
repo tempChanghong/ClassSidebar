@@ -40,6 +40,9 @@ declare global {
       checkSystemCapability: (toolName: string) => Promise<boolean>
       executeSystemTool: (toolName: string) => void
       showToolboxMenu: () => void
+      openLogDirectory: () => Promise<void>
+      setLogLevel: (level: string) => Promise<void>
+      clearLogs: () => Promise<{ success: boolean; error?: string }>
     }
   }
 }

@@ -49,6 +49,9 @@
           </button>
         </SettingsRow>
       </SettingsSection>
+      <SettingsSection title="日志设置">
+        <LogSettings />
+      </SettingsSection>
     </div>
 
     <!-- Tab: Appearance (Widgets) -->
@@ -121,6 +124,7 @@ import SettingsRow from '../components/ui/SettingsRow.vue'
 import BaseSwitch from '../components/ui/BaseSwitch.vue'
 import BaseInput from '../components/ui/BaseInput.vue'
 import WidgetManager from '../components/settings/WidgetManager.vue'
+import LogSettings from '../components/settings/LogSettings.vue'
 import { useConfig } from '../composables/useConfig'
 import appIcon from '../assets/icons.png' // 恢复图片导入
 

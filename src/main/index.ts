@@ -21,6 +21,7 @@ import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import { trayManager } from './TrayManager'
 import { systemToolManager } from './SystemToolManager'
+import { initializeLogger, setLogLevel } from './Logger'
 
 // 这里是大部分 IPC 逻辑的迁移
 function registerIpc(): void {
@@ -533,6 +534,48 @@ if (!gotTheLock) {
         registerIpc()
         // 显式调用注册 IPC
         systemToolManager.registerIpc()
+
+        // Initialize Logger
+        initializeLogger()
+
+        // IPC for opening log directory
+        ipcMain.handle('logs:open-directory', async () => {
+            try {
+                // electron-log default path: userData/logs/main.log
+                // We configured it to be exactly that.
+                // We want to open the *folder*.
+                const logDirectory = path.join(app.getPath('userData'), 'logs');
+                await shell.openPath(logDirectory);
+            } catch (error) {
+                console.error('Failed to open log directory:', error);
+            }
+        })
+
+        // IPC for setting log level
+        ipcMain.handle('logs:set-level', (_: IpcMainInvokeEvent, level: string) => {
+            console.log(`[IPC] Setting log level to ${level}`);
+            setLogLevel(level);
+            // Also update store to persist
+            store.set('logLevel', level);
+            return { success: true };
+        })
+
+        // IPC for clearing logs
+        ipcMain.handle('logs:clear', (_: IpcMainInvokeEvent) => {
+            try {
+                const logFilePath = path.join(app.getPath("userData"), "logs", "main.log");
+                // Check if file exists
+                if (fs.existsSync(logFilePath)) {
+                    // Truncate file
+                    fs.writeFileSync(logFilePath, '');
+                    console.log('[IPC] Logs cleared.');
+                }
+                return { success: true };
+            } catch (error) {
+                console.error('Failed to clear logs:', error);
+                return { success: false, error: (error as Error).message };
+            }
+        })
         
         sidebarWindow.create()
         trayManager.init() // 初始化托盘
