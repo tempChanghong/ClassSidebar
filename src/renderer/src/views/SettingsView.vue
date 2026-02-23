@@ -7,16 +7,16 @@
   >
     <!-- Actions Slot (Top Right) -->
     <template #actions>
-      <button
+      <BaseButton
         v-if="currentTab === 'widgets'"
         @click="saveJsonConfig"
-        class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm transition-colors"
+        variant="primary"
+        size="sm"
         :disabled="!!jsonError"
-        :class="{ 'opacity-50 cursor-not-allowed': !!jsonError }"
       >
-        <Save class="w-4 h-4" />
+        <Save class="w-4 h-4 mr-2" />
         保存 JSON
-      </button>
+      </BaseButton>
     </template>
 
     <!-- Tab: General -->
@@ -31,22 +31,24 @@
         <SettingsRow label="测试工具路径" description="指定用于测试启动功能的外部程序路径">
           <div class="flex items-center gap-2 w-64">
             <BaseInput v-model="testPath" placeholder="e.g. notepad.exe" />
-            <button
+            <BaseButton
               @click="testLaunch"
-              class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              variant="ghost"
               title="测试启动"
+              class="p-2!"
             >
               <Play class="w-4 h-4" />
-            </button>
+            </BaseButton>
           </div>
         </SettingsRow>
         <SettingsRow label="重置应用" description="清除所有本地配置并恢复默认状态">
-          <button
+          <BaseButton
             @click="resetConfig"
-            class="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors border border-red-200"
+            variant="danger"
+            size="sm"
           >
             重置所有设置
-          </button>
+          </BaseButton>
         </SettingsRow>
       </SettingsSection>
       <SettingsSection title="日志设置">
@@ -123,6 +125,7 @@ import SettingsSection from '../components/ui/SettingsSection.vue'
 import SettingsRow from '../components/ui/SettingsRow.vue'
 import BaseSwitch from '../components/ui/BaseSwitch.vue'
 import BaseInput from '../components/ui/BaseInput.vue'
+import BaseButton from '../components/ui/BaseButton.vue'
 import WidgetManager from '../components/settings/WidgetManager.vue'
 import LogSettings from '../components/settings/LogSettings.vue'
 import { useConfig } from '../composables/useConfig'

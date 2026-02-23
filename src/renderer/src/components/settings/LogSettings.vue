@@ -4,16 +4,13 @@
       <!-- Log Level -->
       <div class="flex items-center justify-between">
         <span class="text-sm text-gray-700 dark:text-gray-200">日志级别</span>
-        <select
-          v-model="currentLevel"
-          @change="updateLogLevel"
-          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-        >
-          <option value="error">Error (仅错误)</option>
-          <option value="warn">Warn (警告及以上)</option>
-          <option value="info">Info (普通及以上)</option>
-          <option value="debug">Debug (调试及以上)</option>
-        </select>
+        <div class="w-48">
+          <BaseSelect
+            v-model="currentLevel"
+            @change="updateLogLevel"
+            :options="logLevelOptions"
+          />
+        </div>
       </div>
 
       <!-- Clear Logs -->
@@ -22,12 +19,12 @@
           <span class="text-sm text-gray-700 dark:text-gray-200">清理日志</span>
           <span class="text-xs text-gray-500 dark:text-gray-400">清空当前日志文件内容</span>
         </div>
-        <button
+        <BaseButton
+          variant="danger"
           @click="clearLogs"
-          class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 transition-colors"
         >
           清空日志
-        </button>
+        </BaseButton>
       </div>
     </div>
   </SettingsSection>
@@ -36,8 +33,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import SettingsSection from './SettingsSection.vue'
+import BaseButton from '../ui/BaseButton.vue'
+import BaseSelect from '../ui/BaseSelect.vue'
 
 const currentLevel = ref('info')
+
+const logLevelOptions = [
+  { value: 'error', label: 'Error (仅错误)' },
+  { value: 'warn', label: 'Warn (警告及以上)' },
+  { value: 'info', label: 'Info (普通及以上)' },
+  { value: 'debug', label: 'Debug (调试及以上)' }
+]
 
 const updateLogLevel = async () => {
   try {

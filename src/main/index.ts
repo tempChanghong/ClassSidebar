@@ -21,7 +21,7 @@ import * as fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import { trayManager } from './TrayManager'
 import { systemToolManager } from './SystemToolManager'
-import { initializeLogger, setLogLevel } from './Logger'
+import log, { initializeLogger, setLogLevel } from './Logger'
 
 // 这里是大部分 IPC 逻辑的迁移
 function registerIpc(): void {
@@ -46,16 +46,16 @@ function registerIpc(): void {
     })
 
     ipcMain.handle('save-config', (_: IpcMainInvokeEvent, newConfig: AppSchema) => {
-        console.log('[IPC] save-config called. Widgets count:', newConfig.widgets?.length);
+        log.info('[IPC] save-config called. Widgets count:', newConfig.widgets?.length);
         try {
             // 确保没有非法字段
             if ('displayBounds' in newConfig) {
-                console.warn('[IPC] save-config received displayBounds, stripping it.');
+                log.warn('[IPC] save-config received displayBounds, stripping it.');
                 delete (newConfig as any).displayBounds;
             }
             
             store.set(newConfig);
-            console.log('[IPC] Config saved successfully.');
+            log.info('[IPC] Config saved successfully.');
             
             // Re-calculate displayBounds to ensure renderer has the complete context
             const config = store.store
@@ -70,7 +70,7 @@ function registerIpc(): void {
             sidebarWindow.win?.webContents.send('config-updated', configWithBounds)
             return { success: true }
         } catch (error) {
-            console.error('[IPC] Failed to save config:', error);
+            log.error('[IPC] Failed to save config:', error);
             return { success: false, error: (error as Error).message };
         }
     })
@@ -79,18 +79,10 @@ function registerIpc(): void {
     ipcMain.handle('reset-config', (_: IpcMainInvokeEvent) => {
         try {
             store.clear(); // 清除所有配置
-            // 重新初始化默认值 (store.ts 中的 initDefaults 会在下次加载时自动处理，或者我们可以手动触发)
-            // 由于 store.ts 中的 initDefaults 是在模块加载时运行的，这里我们手动设置默认值
-            // 或者更简单地，直接重启应用，让 initDefaults 再次运行
-            // 但为了更好的体验，我们手动设置回默认值
-            
-            // 重新导入默认配置可能比较麻烦，因为它们在 store.ts 内部
-            // 最简单的方法是清空后重启，或者在 store.ts 暴露一个 reset 方法
-            // 这里我们选择清空，然后让前端触发重启
-            console.log('[IPC] Config reset.');
+            log.info('[IPC] Config reset.');
             return { success: true };
         } catch (error) {
-            console.error('[IPC] Failed to reset config:', error);
+            log.error('[IPC] Failed to reset config:', error);
             return { success: false, error: (error as Error).message };
         }
     })
@@ -139,7 +131,7 @@ function registerIpc(): void {
                 const protocol = filePath.split('://')[0]
                 resolvedPath = utils.getExePathFromProtocol(protocol)
                 if (!resolvedPath) {
-                    console.warn(`[Main] Protocol ${protocol} not found.`)
+                    log.warn(`[Main] Protocol ${protocol} not found.`)
                     return null
                 }
             } else {
@@ -151,7 +143,7 @@ function registerIpc(): void {
                             resolvedPath = shortcut.target
                         }
                     } catch (e) {
-                        console.warn('解析快捷方式失败:', e)
+                        log.warn('解析快捷方式失败:', e)
                     }
                 }
 
@@ -164,19 +156,19 @@ function registerIpc(): void {
             const icon = await app.getFileIcon(resolvedPath, { size: 'large' })
             return icon.toDataURL()
         } catch (err) {
-            console.error('获取图标失败:', filePath, err)
+            log.error('获取图标失败:', filePath, err)
             return null
         }
     })
 
     // 启动应用
     ipcMain.on('launch-app', async (_: IpcMainEvent, target: string, args: string[]) => {
-        console.log(`[launch-app] Request: target="${target}", args=${JSON.stringify(args)}`)
+        log.info(`[launch-app] Request: target="${target}", args=${JSON.stringify(args)}`)
 
         // 处理 URI
         if (target.includes('://')) {
-            console.log('[launch-app] Opening URI')
-            shell.openExternal(target).catch((e) => console.error('打开 URI 失败:', e))
+            log.info('[launch-app] Opening URI')
+            shell.openExternal(target).catch((e) => log.error('打开 URI 失败:', e))
             return
         }
 
@@ -188,7 +180,7 @@ function registerIpc(): void {
         try {
             // 1. 系统命令直接 spawn
             if (systemCommands.includes(baseTarget)) {
-                console.log('[launch-app] Detected system command, using spawn')
+                log.info('[launch-app] Detected system command, using spawn')
                 // Windows 上某些命令可能需要 shell: true 才能正确解析
                 const child = spawn(target, args || [], {
                     detached: true,
@@ -196,33 +188,33 @@ function registerIpc(): void {
                     shell: process.platform === 'win32'
                 })
                 child.unref()
-                child.on('error', (err) => console.error('[launch-app] Spawn error:', err))
+                child.on('error', (err) => log.error('[launch-app] Spawn error:', err))
                 return
             }
 
             // 2. 如果有参数，直接 spawn (openPath 不支持参数)
             if (args && args.length > 0) {
-                console.log('[launch-app] Has args, using spawn')
+                log.info('[launch-app] Has args, using spawn')
                 const child = spawn(target, args, { detached: true, stdio: 'ignore' })
                 child.unref()
-                child.on('error', (err) => console.error('[launch-app] Spawn error:', err))
+                child.on('error', (err) => log.error('[launch-app] Spawn error:', err))
                 return
             }
 
             // 3. 普通文件尝试 openPath
-            console.log('[launch-app] Trying shell.openPath')
+            log.info('[launch-app] Trying shell.openPath')
             const error = await shell.openPath(target)
             if (error) {
-                console.warn(`shell.openPath 失败 (${error}), 尝试 spawn 回退...`)
+                log.warn(`shell.openPath 失败 (${error}), 尝试 spawn 回退...`)
                 // 4. 回退机制：尝试作为可执行文件运行
                 const child = spawn(target, [], { detached: true, stdio: 'ignore' })
                 child.unref()
-                child.on('error', (err) => console.error('[launch-app] Fallback spawn error:', err))
+                child.on('error', (err) => log.error('[launch-app] Fallback spawn error:', err))
             } else {
-                console.log('[launch-app] shell.openPath success')
+                log.info('[launch-app] shell.openPath success')
             }
         } catch (e) {
-            console.error('[launch-app] Unexpected error:', e)
+            log.error('[launch-app] Unexpected error:', e)
         }
     })
 
@@ -231,13 +223,13 @@ function registerIpc(): void {
         try {
             await shell.openExternal(url)
         } catch (e) {
-            console.error('Failed to open external URL:', url, e)
+            log.error('Failed to open external URL:', url, e)
         }
     })
 
     // 执行任意命令 (升级版：支持 Shell)
     ipcMain.on('execute-command', (_: IpcMainEvent, command: string) => {
-        console.log('[execute-command] Executing:', command)
+        log.info(`[execute-command] Executing: ${command}`)
         // shell: true 是让 cmd/powershell 命令生效的关键
         const child = spawn(command, [], { 
             shell: true, 
@@ -246,7 +238,7 @@ function registerIpc(): void {
         })
         
         child.on('error', (err) => {
-            console.error('[execute-command] Spawn error:', err)
+            log.error('[execute-command] Spawn error:', err)
         })
         
         child.unref() // 允许主进程退出而不等待命令结束
@@ -301,7 +293,7 @@ function registerIpc(): void {
                             click: () => {
                                 shell
                                     .openExternal('classisland://app/class-swap')
-                                    .catch((e) => console.error('启动 CI 换课失败:', e))
+                                    .catch((e) => log.error('启动 CI 换课失败:', e))
                             }
                         })
                     )
@@ -316,7 +308,7 @@ function registerIpc(): void {
                             click: () => {
                                 shell
                                     .openExternal('secrandom://pumping')
-                                    .catch((e) => console.error('启动随机点名失败:', e))
+                                    .catch((e) => log.error('启动随机点名失败:', e))
                             }
                         })
                     )
@@ -331,12 +323,12 @@ function registerIpc(): void {
                     click: () => {
                         if (target) {
                             const fullPath = utils.resolveExecutablePath(target)
-                            console.log('[Main] Showing item in folder:', target, '->', fullPath)
+                            log.info(`[Main] Showing item in folder: ${target} -> ${fullPath}`)
 
                             if (fullPath) {
                                 shell.showItemInFolder(fullPath)
                             } else {
-                                console.error('[Main] Path does not exist:', target)
+                                log.error(`[Main] Path does not exist: ${target}`)
                             }
                         }
                     }
@@ -368,6 +360,7 @@ function registerIpc(): void {
 
                             // 通知更新
                             sidebarWindow.win?.webContents.send('config-updated', store.store)
+                            log.info(`[IPC] Successfully deleted item target index ${itemIndex} from widget index ${widgetIndex}`)
                         }
                     }
                 })
@@ -378,12 +371,7 @@ function registerIpc(): void {
                     label: '打开所在位置',
                     click: () => {
                         const fullPath = utils.resolveExecutablePath(itemData.target)
-                        console.log(
-                            '[Main] Showing item in folder:',
-                            itemData.target,
-                            '->',
-                            fullPath
-                        )
+                        log.info(`[Main] Showing item in folder: ${itemData.target} -> ${fullPath}`)
                         if (fullPath) {
                             shell.showItemInFolder(fullPath)
                         }
@@ -404,6 +392,7 @@ function registerIpc(): void {
                 new MenuItem({
                     label: '退出应用',
                     click: () => {
+                        log.info('User requested quit from context menu.')
                         app.quit()
                     }
                 })
@@ -420,7 +409,7 @@ function registerIpc(): void {
             try {
                 const resolvedPath = utils.resolveWindowsEnv(folderPath)
                 if (!fs.existsSync(resolvedPath)) {
-                    console.warn('Folder does not exist:', resolvedPath)
+                    log.warn(`Folder does not exist: ${resolvedPath}`)
                     return []
                 }
 
@@ -460,13 +449,13 @@ function registerIpc(): void {
 
                 return fileStats.slice(0, maxCount || 100)
             } catch (err) {
-                console.error('Error listing files:', err)
+                log.error('Error listing files:', err)
                 return []
             }
         }
     )
 
-    // 添加快捷方式 (旧版逻辑，现在应该通过 WidgetManager 添加)
+    // 添加快捷方式
     ipcMain.handle('add-shortcut', async (_: IpcMainInvokeEvent, filePath: string) => {
         try {
             const fileName = path.basename(filePath)
@@ -486,6 +475,7 @@ function registerIpc(): void {
                     targets: []
                 }
                 widgets.push(launcherWidget as WidgetConfig) // 添加到 widgets 数组
+                log.info('Created new launcher widget for shortcut.')
             }
 
             if (!Array.isArray(launcherWidget.targets)) {
@@ -502,7 +492,7 @@ function registerIpc(): void {
 
             return { success: true }
         } catch (err: unknown) {
-            console.error('添加快捷方式失败:', err)
+            log.error('添加快捷方式失败:', err)
             const message = err instanceof Error ? err.message : 'An unknown error occurred'
             return { success: false, error: message }
         }
@@ -521,10 +511,15 @@ if (!gotTheLock) {
             if (sidebarWindow.win.isMinimized()) sidebarWindow.win.restore()
             sidebarWindow.win.show()
             sidebarWindow.win.focus()
+            log.debug('Second instance launched, focusing existing sidebar-window.')
         }
     })
 
     app.whenReady().then(() => {
+        // [修改处]：把 Logger 的初始化提前到了 app 生命周期的极早期
+        initializeLogger()
+        log.info('Application is preparing to start.')
+
         electronApp.setAppUserModelId('com.class.sidebar')
 
         app.on('browser-window-created', (_, window) => {
@@ -535,25 +530,20 @@ if (!gotTheLock) {
         // 显式调用注册 IPC
         systemToolManager.registerIpc()
 
-        // Initialize Logger
-        initializeLogger()
-
         // IPC for opening log directory
         ipcMain.handle('logs:open-directory', async () => {
             try {
-                // electron-log default path: userData/logs/main.log
-                // We configured it to be exactly that.
-                // We want to open the *folder*.
                 const logDirectory = path.join(app.getPath('userData'), 'logs');
                 await shell.openPath(logDirectory);
+                log.info(`Opened log directory: ${logDirectory}`);
             } catch (error) {
-                console.error('Failed to open log directory:', error);
+                log.error('Failed to open log directory:', error);
             }
         })
 
         // IPC for setting log level
         ipcMain.handle('logs:set-level', (_: IpcMainInvokeEvent, level: string) => {
-            console.log(`[IPC] Setting log level to ${level}`);
+            log.info(`[IPC] Setting log level to ${level}`);
             setLogLevel(level);
             // Also update store to persist
             store.set('logLevel', level);
@@ -568,11 +558,11 @@ if (!gotTheLock) {
                 if (fs.existsSync(logFilePath)) {
                     // Truncate file
                     fs.writeFileSync(logFilePath, '');
-                    console.log('[IPC] Logs cleared.');
+                    log.info('[IPC] Logs cleared.');
                 }
                 return { success: true };
             } catch (error) {
-                console.error('Failed to clear logs:', error);
+                log.error('Failed to clear logs:', error);
                 return { success: false, error: (error as Error).message };
             }
         })
@@ -583,12 +573,12 @@ if (!gotTheLock) {
         app.on('activate', function () {
             if (sidebarWindow.win === null) sidebarWindow.create()
         })
+    }).catch(err => {
+        console.error('Failed to start application properly:', err)
     })
 
     app.on('window-all-closed', () => {
         // 移除 app.quit()，因为我们希望应用在后台运行
-        // if (process.platform !== 'darwin') {
-        //     app.quit()
-        // }
+        // log.info('All windows closed, app is running in background.')
     })
 }

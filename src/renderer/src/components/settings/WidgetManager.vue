@@ -84,13 +84,15 @@
       </div>
 
       <!-- Add Button -->
-      <button
+      <BaseButton
+        variant="ghost"
+        block
         @click="openAddModal"
-        class="w-full py-3 flex items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all duration-200 font-medium"
+        class="border-2 border-dashed border-slate-300"
       >
-        <Plus class="w-5 h-5" />
+        <Plus class="w-5 h-5 mr-2" />
         自定义添加
-      </button>
+      </BaseButton>
     </div>
 
     <!-- Tab Content: Widget Library -->
@@ -99,7 +101,7 @@
         <div v-for="preset in widgetPresets" :key="preset.id" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
           <div class="flex items-start gap-4">
             <!-- Icon -->
-            <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 overflow-hidden">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 overflow-hidden">
                <img v-if="isImage(preset.iconPath)" :src="preset.iconPath" class="w-full h-full object-contain" />
                <component v-else :is="getPresetIcon(preset)" class="w-6 h-6" />
             </div>
@@ -112,23 +114,25 @@
                 </div>
 
                 <!-- Add Button (Group) -->
-                <button
+                <BaseButton
                   v-if="preset.type === 'group'"
+                  size="sm"
+                  variant="primary"
                   @click="addPresetGroup(preset)"
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                 >
-                  <Plus class="w-3 h-3" />
+                  <Plus class="w-3 h-3 mr-1" />
                   添加整组
-                </button>
+                </BaseButton>
                 <!-- Add Button (Single Item) -->
-                <button
+                <BaseButton
                   v-else
+                  size="sm"
+                  variant="primary"
                   @click="addPresetItem(preset)"
-                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                 >
-                  <Plus class="w-3 h-3" />
+                  <Plus class="w-3 h-3 mr-1" />
                   添加
-                </button>
+                </BaseButton>
               </div>
 
               <!-- Children List (for Groups) -->
@@ -141,7 +145,7 @@
                     class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100"
                   >
                     <div class="flex items-center gap-2 overflow-hidden">
-                      <div class="w-6 h-6 rounded bg-white flex items-center justify-center text-slate-500 border border-slate-100 flex-shrink-0">
+                      <div class="w-6 h-6 rounded bg-white flex items-center justify-center text-slate-500 border border-slate-100 shrink-0">
                         <component :is="getPresetIcon(child)" class="w-3 h-3" />
                       </div>
                       <span class="text-sm text-slate-700 truncate">{{ child.displayName }}</span>
@@ -180,38 +184,27 @@
 
           <!-- Type Selection -->
           <div class="space-y-1.5">
-            <label class="text-sm font-medium text-slate-700">组件类型</label>
-            <select
+            <BaseSelect
+              label="组件类型"
               v-model="form.type"
-              class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-2"
+              :options="typeOptions"
               :disabled="isEditing"
-            >
-              <option value="launcher">启动器 (Launcher)</option>
-              <option value="url">网页链接 (URL)</option>
-              <option value="command">系统命令 (Command)</option>
-              <option value="volume_slider">音量控制 (Volume)</option>
-              <option value="files">文件夹 (Files)</option>
-              <option value="drag_to_launch">拖拽启动 (Drag to Launch)</option>
-              <option value="system_tools">系统工具箱 (System Tools)</option>
-              <option value="drawer">抽屉容器 (Drawer)</option> <!-- Added Drawer Option -->
-            </select>
+            />
           </div>
 
           <!-- Common Fields -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1.5">
-              <label class="text-sm font-medium text-slate-700">显示名称</label>
-              <input
+              <BaseInput
+                label="显示名称"
                 v-model="form.name"
-                type="text"
                 placeholder="My Widget"
-                class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div class="space-y-1.5">
               <label class="text-sm font-medium text-slate-700">图标</label>
               <div class="flex gap-2">
-                <div class="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden flex-shrink-0">
+                <div class="w-10 h-10 rounded-lg border border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden shrink-0">
                    <img v-if="form.icon" :src="form.icon" class="w-full h-full object-contain" />
                    <component v-else :is="getWidgetIcon(form.type)" class="w-5 h-5 text-slate-400" />
                 </div>
@@ -230,26 +223,23 @@
           <!-- Launcher -->
           <template v-if="form.type === 'launcher'">
              <div class="space-y-1.5">
-               <label class="text-sm font-medium text-slate-700">目标路径 (Target)</label>
-               <div class="flex gap-2">
-                 <input
+               <div class="flex gap-2 items-end">
+                 <BaseInput
+                   label="目标路径 (Target)"
                    v-model="form.target"
-                   type="text"
                    placeholder="C:\Windows\System32\notepad.exe"
-                   class="flex-1 rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500"
+                   class="flex-1"
                  />
-                 <button @click="selectTarget" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600">
+                 <BaseButton variant="secondary" @click="selectTarget">
                    <FolderOpen class="w-4 h-4" />
-                 </button>
+                 </BaseButton>
                </div>
              </div>
              <div class="space-y-1.5">
-               <label class="text-sm font-medium text-slate-700">参数 (Arguments)</label>
-               <input
+               <BaseInput
+                 label="参数 (Arguments)"
                  v-model="argsString"
-                 type="text"
                  placeholder="--arg1 --arg2"
-                 class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500"
                />
                <p class="text-xs text-slate-500">多个参数请用空格分隔</p>
              </div>
@@ -258,12 +248,11 @@
           <!-- URL -->
           <template v-if="form.type === 'url'">
             <div class="space-y-1.5">
-              <label class="text-sm font-medium text-slate-700">链接地址 (URL)</label>
-              <input
+              <BaseInput
+                label="链接地址 (URL)"
                 v-model="form.url"
                 type="url"
                 placeholder="https://example.com"
-                class="w-full rounded-lg border-slate-300 text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </template>
@@ -280,41 +269,45 @@
               ></textarea>
             </div>
             <div class="space-y-1.5">
-              <label class="text-sm font-medium text-slate-700">Shell 环境</label>
-              <select v-model="form.shell" class="w-full rounded-lg border-slate-300 text-sm">
-                <option value="cmd">CMD</option>
-                <option value="powershell">PowerShell</option>
-                <option value="bash">Bash</option>
-              </select>
+              <BaseSelect
+                label="Shell 环境"
+                v-model="form.shell"
+                :options="shellOptions"
+              />
             </div>
           </template>
 
           <!-- Files -->
           <template v-if="form.type === 'files'">
             <div class="space-y-1.5">
-              <label class="text-sm font-medium text-slate-700">文件夹路径</label>
-              <div class="flex gap-2">
-                <input v-model="form.folder_path" type="text" class="flex-1 rounded-lg border-slate-300 text-sm" />
-                <button @click="selectFolder" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600">
+              <div class="flex gap-2 items-end">
+                <BaseInput
+                  label="文件夹路径"
+                  v-model="form.folder_path"
+                  class="flex-1"
+                />
+                <BaseButton variant="secondary" @click="selectFolder">
                   <FolderOpen class="w-4 h-4" />
-                </button>
+                </BaseButton>
               </div>
             </div>
             <div class="space-y-1.5">
-              <label class="text-sm font-medium text-slate-700">最大显示数量</label>
-              <input v-model.number="form.max_count" type="number" class="w-full rounded-lg border-slate-300 text-sm" />
+              <BaseInput
+                label="最大显示数量"
+                v-model.number="form.max_count"
+                type="number"
+              />
             </div>
           </template>
 
           <!-- Drag to Launch -->
           <template v-if="form.type === 'drag_to_launch'">
             <div class="space-y-1.5">
-              <label class="text-sm font-medium text-slate-700">命令模板</label>
-              <input
+              <BaseInput
+                label="命令模板"
                 v-model="form.command_template"
-                type="text"
                 placeholder='"{path}"'
-                class="w-full rounded-lg border-slate-300 text-sm font-mono"
+                class="font-mono"
               />
               <p class="text-xs text-slate-500">使用 {path} 代表拖入的文件路径</p>
             </div>
@@ -336,12 +329,12 @@
 
           <!-- Layout Option (Common for supported types) -->
           <div v-if="['launcher', 'url', 'command', 'system_tools', 'drawer'].includes(form.type)" class="space-y-1.5 pt-2 border-t border-slate-100">
-             <label class="text-sm font-medium text-slate-700">布局模式</label>
-             <select v-model="form.layout" class="w-full rounded-lg border-slate-300 text-sm">
-               <option value="grid">网格布局 (Grid) - 紧凑图标</option>
-               <option value="vertical">垂直列表 (Vertical) - 详细信息</option>
-             </select>
-             <p class="text-xs text-slate-500">
+             <BaseSelect
+               label="布局模式"
+               v-model="form.layout"
+               :options="layoutOptions"
+             />
+             <p class="text-xs text-slate-500 mt-1">
                {{ form.layout === 'grid' ? '显示为小图标，每行显示多个。' : '显示为长条形，占据整行宽度。' }}
              </p>
           </div>
@@ -350,18 +343,19 @@
 
         <!-- Modal Footer -->
         <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-          <button
+          <BaseButton
+            variant="ghost"
             @click="closeModal"
-            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors"
+            class="text-slate-600 hover:text-slate-800"
           >
             取消
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
+            variant="primary"
             @click="saveWidget"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
           >
             保存
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>
@@ -373,6 +367,9 @@ import { ref, computed } from 'vue'
 import { useSidebarStore } from '../../stores/sidebarStore'
 import type { WidgetConfig } from '../../../../main/store'
 import { widgetPresets, type WidgetPreset } from '../../config/widgetPresets'
+import BaseButton from '../ui/BaseButton.vue'
+import BaseInput from '../ui/BaseInput.vue'
+import BaseSelect from '../ui/BaseSelect.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   AppWindow,
@@ -419,6 +416,28 @@ const form = ref<any>({
   command_template: '"{path}"',
   children: [] // For drawer
 })
+
+const typeOptions = [
+  { value: 'launcher', label: '启动器 (Launcher)' },
+  { value: 'url', label: '网页链接 (URL)' },
+  { value: 'command', label: '系统命令 (Command)' },
+  { value: 'volume_slider', label: '音量控制 (Volume)' },
+  { value: 'files', label: '文件夹 (Files)' },
+  { value: 'drag_to_launch', label: '拖拽启动 (Drag to Launch)' },
+  { value: 'system_tools', label: '系统工具箱 (System Tools)' },
+  { value: 'drawer', label: '抽屉容器 (Drawer)' }
+]
+
+const shellOptions = [
+  { value: 'cmd', label: 'CMD' },
+  { value: 'powershell', label: 'PowerShell' },
+  { value: 'bash', label: 'Bash' }
+]
+
+const layoutOptions = [
+  { value: 'grid', label: '网格布局 (Grid) - 紧凑图标' },
+  { value: 'vertical', label: '垂直列表 (Vertical) - 详细信息' }
+]
 
 // Helper for args array <-> string
 const argsString = computed({
