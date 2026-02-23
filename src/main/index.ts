@@ -8,7 +8,8 @@ import {
     shell,
     Menu,
     MenuItem,
-    BrowserWindow
+    BrowserWindow,
+    globalShortcut
 } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { sidebarWindow } from './windows/SidebarWindow'
@@ -570,6 +571,19 @@ if (!gotTheLock) {
         sidebarWindow.create()
         trayManager.init() // 初始化托盘
 
+        // --- 注册全局快捷键 ---
+        const SHORTCUT = 'CommandOrControl+Shift+S'
+        const registered = globalShortcut.register(SHORTCUT, () => {
+            log.info(`[GlobalShortcut] "${SHORTCUT}" triggered.`)
+            trayManager.toggleWindow()
+        })
+
+        if (registered) {
+            log.info(`[GlobalShortcut] "${SHORTCUT}" registered successfully.`)
+        } else {
+            log.warn(`[GlobalShortcut] Failed to register "${SHORTCUT}". It may be occupied by another application.`)
+        }
+
         app.on('activate', function () {
             if (sidebarWindow.win === null) sidebarWindow.create()
         })
@@ -580,6 +594,12 @@ if (!gotTheLock) {
     app.on('before-quit', () => {
         log.info('Application is quitting. Cleaning up tray...')
         trayManager.destroy()
+    })
+
+    app.on('will-quit', () => {
+        // 注销所有全局快捷键，防止按键残留
+        globalShortcut.unregisterAll()
+        log.info('[GlobalShortcut] All global shortcuts unregistered.')
     })
 
     app.on('window-all-closed', () => {

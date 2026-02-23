@@ -22,31 +22,40 @@ const props = defineProps<{
 }>()
 
 const handleClick = () => {
-  if (props.item.command) {
-    let cmd = props.item.command
+  const rawCmd = props.item.command?.trim()
+  if (!rawCmd) return
+
+  try {
     // Escape double quotes for the wrapper command
-    const escapedCmd = cmd.replace(/"/g, '\\"')
+    const escapedCmd = rawCmd.replace(/"/g, '\\"')
+    let cmd: string
 
     if (props.item.shell === 'powershell') {
-        // PowerShell: Open new window, keep it open (-NoExit)
-        // start "" is used to prevent the first quoted argument being interpreted as window title
-        cmd = `start "" powershell -NoExit -Command "${escapedCmd}"`
+      // PowerShell: Open new window, keep it open (-NoExit)
+      cmd = `start "" powershell -NoExit -Command "${escapedCmd}"`
     } else if (props.item.shell === 'bash') {
-        // Bash: Open new window
-        cmd = `start "" bash -c "${escapedCmd}; exec bash"`
+      // Bash: Open new window
+      cmd = `start "" bash -c "${escapedCmd}; exec bash"`
     } else {
-        // CMD (default): Open new window, keep it open (/k)
-        cmd = `start "" cmd /k "${escapedCmd}"`
+      // CMD (default): Open new window, keep it open (/k)
+      cmd = `start "" cmd /k "${escapedCmd}"`
     }
+
     window.electronAPI.executeCommand(cmd)
+  } catch (e) {
+    console.error('[CommandWidget] Failed to execute command:', e)
   }
 }
 
 const handleContextMenu = () => {
-  window.electronAPI.showContextMenu({
-    widgetIndex: props.widgetIndex,
-    itemIndex: -1,
-    target: props.item.command
-  })
+  try {
+    window.electronAPI.showContextMenu({
+      widgetIndex: props.widgetIndex,
+      itemIndex: -1,
+      target: props.item.command
+    })
+  } catch (e) {
+    console.error('[CommandWidget] Failed to show context menu:', e)
+  }
 }
 </script>
