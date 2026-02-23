@@ -577,8 +577,13 @@ if (!gotTheLock) {
         console.error('Failed to start application properly:', err)
     })
 
+    app.on('before-quit', () => {
+        log.info('Application is quitting. Cleaning up tray...')
+        trayManager.destroy()
+    })
+
     app.on('window-all-closed', () => {
-        // 移除 app.quit()，因为我们希望应用在后台运行
-        // log.info('All windows closed, app is running in background.')
+        // 不调用 app.quit() —— 应用在后台通过系统托盘继续运行
+        log.debug('All windows closed. App continues running in system tray.')
     })
 }
