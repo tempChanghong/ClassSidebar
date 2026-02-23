@@ -12,7 +12,8 @@
     <!-- Loading spinner icon -->
     <svg
       v-if="loading"
-      class="animate-spin -ml-1 mr-2 h-4 w-4"
+      class="animate-spin h-4 w-4"
+      :class="size === 'icon' ? '' : '-ml-1 mr-2'"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -45,11 +46,11 @@
  * 以及加载状态 (loading)。
  * 使用 `v-bind="$attrs"` 自动透传如 `type="submit"`, `title` 等未定义的 HTML 属性。
  */
-import { computed } from 'vue';
+// No additional imports needed — props and variant/size maps are plain objects.
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   disabled?: boolean;
   block?: boolean;
@@ -68,6 +69,7 @@ const sizeClasses = {
   sm: 'px-3 py-1.5 text-xs rounded-md',
   md: 'px-4 py-2 text-sm rounded-lg',
   lg: 'px-5 py-3 text-base rounded-lg',
+  icon: 'p-1.5 w-8 h-8 rounded-md',
 };
 
 // 定义每种变体（颜色风格）对应的 Tailwind CSS 类，支持深色模式 (dark:) 和交互状态 (hover:, focus:, active:)
