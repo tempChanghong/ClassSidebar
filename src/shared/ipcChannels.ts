@@ -59,6 +59,12 @@ export const IPC_CHANNELS = {
   LOGS_OPEN_DIRECTORY: 'logs:open-directory',
   LOGS_SET_LEVEL: 'logs:set-level',
   LOGS_CLEAR: 'logs:clear',
+
+  // ── 高级/调试功能 ──────────────────────────────────
+  DEBUG_OPEN_CONFIG_FOLDER: 'debug:open-config-folder',
+  DEBUG_OPEN_DEVTOOLS: 'debug:open-devtools',
+  DEBUG_QUIT_APP: 'debug:quit-app',
+  DEBUG_CLEAR_CACHE: 'debug:clear-cache',
 } as const
 
 /** 所有频道名称的联合类型 */

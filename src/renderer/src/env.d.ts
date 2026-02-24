@@ -36,6 +36,7 @@ interface FileEntry {
 
 /** getLoginItemSettings 返回值 (Electron.LoginItemSettings 的精确子集) */
 interface LoginItemSettingsResult {
+  isDisabled?: boolean
   openAtLogin: boolean
   openAsHidden: boolean
   wasOpenedAtLogin: boolean
@@ -119,6 +120,12 @@ declare global {
       openLogDirectory: () => Promise<void>
       setLogLevel: (level: string) => Promise<{ success: boolean }>
       clearLogs: () => Promise<{ success: boolean; error?: string }>
+      
+      // ── 高级/调试功能 ──────────────────────────────────
+      openConfigFolder: () => Promise<{ success: boolean; error?: string }>
+      openDevTools: (target: 'main' | 'settings') => void
+      quitApp: () => void
+      clearCache: () => Promise<{ success: boolean; error?: string }>
     }
   }
 }

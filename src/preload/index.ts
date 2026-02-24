@@ -122,6 +122,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   clearLogs: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC_CHANNELS.LOGS_CLEAR),
+
+  // ── 高级/调试功能 ──────────────────────────────────
+  openConfigFolder: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DEBUG_OPEN_CONFIG_FOLDER),
+
+  openDevTools: (target: 'main' | 'settings'): void =>
+    ipcRenderer.send(IPC_CHANNELS.DEBUG_OPEN_DEVTOOLS, target),
+
+  quitApp: (): void =>
+    ipcRenderer.send(IPC_CHANNELS.DEBUG_QUIT_APP),
+
+  clearCache: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.DEBUG_CLEAR_CACHE),
 })
 
 // ─────────────────────────────────────────────────────────────────

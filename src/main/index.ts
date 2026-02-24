@@ -9,7 +9,8 @@ import {
     Menu,
     MenuItem,
     BrowserWindow,
-    globalShortcut
+    globalShortcut,
+    session
 } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { sidebarWindow } from './windows/SidebarWindow'
@@ -274,14 +275,56 @@ function registerIpc(): void {
 
     // 获取开机自启设置
     ipcMain.handle('get-login-item-settings', () => {
-        return app.getLoginItemSettings()
+        // 开发模式下禁用开机自启配置
+        if (!app.isPackaged) {
+            return { isDisabled: true }
+        }
+        return { ...app.getLoginItemSettings(), isDisabled: false }
     })
 
     // 设置开机自启
     ipcMain.handle('set-login-item-settings', (_: IpcMainInvokeEvent, settings: any) => {
+        // 生产环境才允许设置开机自启
+        if (!app.isPackaged) {
+            return { isDisabled: true }
+        }
         app.setLoginItemSettings(settings)
-        return app.getLoginItemSettings()
+        return { ...app.getLoginItemSettings(), isDisabled: false }
     })
+
+    // --- 调试与高级功能 ---
+    ipcMain.handle('debug:open-config-folder', async () => {
+        try {
+            await shell.openPath(app.getPath('userData'))
+            return { success: true }
+        } catch (e) {
+            log.error('Failed to open config folder:', e)
+            return { success: false, error: String(e) }
+        }
+    })
+
+    ipcMain.on('debug:open-devtools', (_: IpcMainEvent, target: 'main' | 'settings') => {
+        if (target === 'main' && sidebarWindow.win) {
+            sidebarWindow.win.webContents.openDevTools({ mode: 'detach' })
+        } else if (target === 'settings' && settingsWindow.win) {
+            settingsWindow.win.webContents.openDevTools({ mode: 'detach' })
+        }
+    })
+
+    ipcMain.on('debug:quit-app', () => {
+        app.quit()
+    })
+
+    ipcMain.handle('debug:clear-cache', async () => {
+        try {
+            await session.defaultSession.clearCache()
+            return { success: true }
+        } catch (e) {
+            log.error('Failed to clear cache:', e)
+            return { success: false, error: String(e) }
+        }
+    })
+    // ----------------------
 
     // 显示右键菜单
     ipcMain.on('show-context-menu', (event: IpcMainEvent, itemData: any) => {
