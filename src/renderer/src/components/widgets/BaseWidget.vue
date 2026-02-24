@@ -1,6 +1,9 @@
 <template>
   <div
-    class="base-widget relative overflow-hidden flex p-2 rounded-lg hover:bg-black/5 transition-colors cursor-pointer select-none border border-transparent hover:border-black/5"
+    class="base-widget relative overflow-hidden flex p-2
+           rounded-xl transition-all duration-300 ease-in-out
+           bg-white/40 hover:bg-white/80 hover:scale-105 active:scale-95
+           cursor-pointer select-none border border-white/30 shadow-sm hover:shadow-md"
     @click="handleClick"
     @contextmenu.prevent="$emit('contextmenu')"
     :title="title"
@@ -18,8 +21,9 @@
     </div>
 
     <!-- Icon Container -->
+    <!-- 【终极视觉微调】: 控制图标圆角为 rounded-xl，使用高对比度深色 text-slate-800 -->
     <div
-      class="widget-icon flex items-center justify-center text-slate-700"
+      class="widget-icon flex items-center justify-center text-slate-800 rounded-xl overflow-hidden"
       :class="layout === 'vertical' ? 'w-8 h-8 mr-3' : 'w-8 h-8 mb-1'"
     >
       <slot name="icon">
@@ -33,10 +37,11 @@
     </div>
 
     <!-- Label Container -->
+    <!-- 【终极视觉微调】: 字体加粗 (font-semibold) 提升精致感，并使用高对比度 text-slate-800 -->
     <div
-      class="widget-label text-slate-700 truncate"
+      class="widget-label text-slate-800 truncate"
       :class="[
-        layout === 'vertical' ? 'text-sm font-medium flex-1 text-left' : 'text-xs font-bold text-center w-full px-1'
+        layout === 'vertical' ? 'text-sm font-semibold flex-1 text-left' : 'text-xs font-semibold text-center w-full px-1'
       ]"
     >
       {{ name }}
@@ -77,14 +82,7 @@ const handleClick = (e: MouseEvent) => {
 
 <style scoped>
 .base-widget {
-  /* 基础样式，具体布局由 Tailwind 类控制 */
-  /* 添加边框以增强可见性，特别是网格模式下 */
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  background-color: rgba(255, 255, 255, 0.4);
-}
-
-.base-widget:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-color: rgba(0, 0, 0, 0.1);
+  /* 移除原本固定的不透明白底色和黑边框 */
+  /* 完全由 html 类如 hover:bg-white/10 及 hover:border-white/20 负责动态质感 */
 }
 </style>

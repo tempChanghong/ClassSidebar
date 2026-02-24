@@ -7,34 +7,23 @@
     <!--
       sidebar-container: 侧边栏 **核心容器**
       ─────────────────────────────────────────────────────────────
-      · sidebarStyle 动态控制：width / height / borderRadius /
-        marginLeft / backgroundColor（半透明白色，随展开进度变化）
-        ↑ 这些属性由 JS 动画驱动，class 要避免覆盖
-
-      · 伪亚克力分层架构（Fake Acrylic Stack）：
-        ┌─────────────────────────────────────────────────────┐
-        │  .sidebar-container                                 │
-        │   backdrop-blur-2xl  → CSS 毛玻璃核心（blur 24px）  │
-        │   backdrop-saturate-150 → 背景色彩饱和度增强         │
-        │   backgroundColor(JS) → 半透明白色底版 0.4~0.65     │
-        │                                                     │
-        │   ┌─── .acrylic-noise (absolute, inset-0) ─────┐   │
-        │   │  SVG fractalNoise，opacity 0.04             │   │
-        │   │  在 backdrop-filter 之上独立渲染，不被模糊   │   │
-        │   └────────────────────────────────────────────┘   │
-        │                                                     │
-        │   ┌─── .widgets-container ─────────────────────┐   │
-        │   │  内容层，z-index 自然叠于噪点层之上          │   │
-        │   └────────────────────────────────────────────┘   │
-        └─────────────────────────────────────────────────────┘
-        - overflow-hidden → 圆角裁切所有子层
-        - will-change     → GPU 加速展开动画
+      · 终极视觉微调 (提升底板厚度与精致排版):
+        - !bg-white/[0.85]: 进一步提高白色底板不透明度，让奶白感极其扎实，不再过度透出底层杂色
+        - antialiased: 全局平滑字体边缘，打造苹果系统级别的精美排版质感
+        - backdrop-blur-2xl / backdrop-saturate-150: 保持强大的毛玻璃色彩穿透
+        - border border-white/60: 明显的高光边缘折射
+        - shadow-xl shadow-black/10: 柔和的底层阴影
+        - !rounded-2xl: 统一顺滑的大圆角
     -->
     <div
       class="sidebar-container
+             !bg-white/[0.85]
              backdrop-blur-2xl
              backdrop-saturate-150
-             border border-white/20
+             border border-white/60
+             shadow-xl shadow-black/10
+             !rounded-2xl
+             antialiased
              overflow-hidden
              will-change-[width,height,border-radius]"
       ref="sidebarRef"
@@ -42,9 +31,7 @@
     >
       <!-- ── 伪亚克力噪点层 ──────────────────────────────────────
            在 backdrop-filter 之后、在内容之前独立渲染。
-           absolute + inset-0 保证完全覆盖容器，pointer-events-none
-           确保不拦截任何鼠标/触摸事件。
-           border-radius: inherit 配合容器动态圆角同步变化。
+           增加极具质感的高级拟物化微噪点
       ──────────────────────────────────────────────────────────── -->
       <div class="acrylic-noise absolute inset-0" aria-hidden="true" />
       <!-- ── 拖拽手柄 ─────────────────────────────────────────── -->
@@ -89,11 +76,10 @@
         <!-- 标题栏 -->
         <div class="flex justify-between items-center mb-4">
           <!--
-            标题文字：原为 text-slate-800，侧边栏背景偏灰，
-            text-txt-main（#1f2937）与设计系统保持一致。
-            tracking-tight 让字形更紧凑，贴近原生系统风格。
+            标题文字：终极视觉微调，采用 font-extrabold 和 tracking-tight 强化现代感，
+            并使用高对比度 text-slate-800。
           -->
-          <h2 class="text-xl font-bold tracking-tight text-txt-main select-none">
+          <h2 class="text-xl font-extrabold tracking-tight text-slate-800 select-none">
             Sidebar
           </h2>
 
@@ -223,19 +209,10 @@ onMounted(() => {
 }
 
 /* ── 伪亚克力容器强化 ────────────────────────────────────────
-   backdrop-blur-2xl / backdrop-saturate-150 由 Tailwind 注入，
-   此处补充：
-   1. -webkit-backdrop-filter 确保 Webkit/Electron 下兼容（与 blur-2xl 对齐到 24px）
-   2. 顶部内阴影高光 → 模拟玻璃顶面折射，是亚克力质感的关键
-   3. 强化外影 → 让侧边栏明显浮于桌面之上
+   使用 Tailwind 类控制背景和模糊，此处保留内阴影高光以增强玻璃边缘质感
 ──────────────────────────────────────────────────────────── */
 .sidebar-container {
-  /* webkit 兼容：必须与 backdrop-blur-2xl(24px) 数值一致 */
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  /* 物理玻璃边缘：顶部高光内阴影 + 悬浮阴影 */
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
-    0 8px 32px rgba(0, 0, 0, 0.18),
-    0 2px 8px rgba(0, 0, 0, 0.10);
+  /* 物理玻璃边缘：顶部高光内阴影增强玻璃折射感，配合 Tailwind 的 shadow-2xl 使用 */
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.20), var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 </style>
