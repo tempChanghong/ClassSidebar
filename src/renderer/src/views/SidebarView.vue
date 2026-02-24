@@ -80,7 +80,7 @@
             并使用高对比度 text-slate-800。
           -->
           <h2 class="text-xl font-extrabold tracking-tight text-slate-800 select-none">
-            Sidebar
+            {{ displayTitle }}
           </h2>
 
           <!--
@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useSidebarStore } from '../stores/sidebarStore'
 import WidgetHost from '../components/widgets/WidgetHost.vue'
 import { Settings, GripHorizontal } from 'lucide-vue-next'
@@ -127,6 +127,24 @@ import { useSidebarInteraction } from '../composables/useSidebarInteraction'
 
 const store = useSidebarStore()
 const sidebarRef = ref<HTMLElement | null>(null)
+
+const currentTime = ref(new Date())
+let timer: ReturnType<typeof setInterval>
+
+const displayTitle = computed(() => {
+  const c = store.config
+  if (!c) return 'Sidebar'
+  if (c.sidebarTitleType === 'time') {
+    return currentTime.value.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
+  if (c.sidebarTitleType === 'date') {
+    return currentTime.value.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short' })
+  }
+  if (c.sidebarTitleType === 'datetime') {
+    return currentTime.value.toLocaleString('zh-CN', { month: 'short', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  }
+  return c.sidebarCustomText || 'Sidebar'
+})
 
 // 使用 Composable 提取交互逻辑（保持不变）
 const {
@@ -145,6 +163,13 @@ function openSettings() {
 
 onMounted(() => {
   store.loadConfig()
+  timer = setInterval(() => {
+    currentTime.value = new Date()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  clearInterval(timer)
 })
 </script>
 

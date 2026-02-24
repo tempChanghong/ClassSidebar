@@ -79,6 +79,8 @@ export interface AppSchema {
         animation_speed: number;
     };
     logLevel: string;
+    sidebarTitleType: 'text' | 'date' | 'time' | 'datetime';
+    sidebarCustomText: string;
 }
 
 // --- Default Configuration ---
@@ -138,6 +140,15 @@ const schema: Schema<AppSchema> = {
     logLevel: {
         type: 'string',
         default: 'info'
+    },
+    sidebarTitleType: {
+        type: 'string',
+        enum: ['text', 'date', 'time', 'datetime'],
+        default: 'text'
+    },
+    sidebarCustomText: {
+        type: 'string',
+        default: 'Sidebar'
     }
 };
 
@@ -173,6 +184,14 @@ function initDefaults() {
     if (!transforms || typeof transforms !== 'object') {
         console.log('[Store] Initializing default transforms...');
         store.set('transforms', defaultTransforms);
+    }
+
+    // 3. Check and set default sidebar title properties
+    if (!store.has('sidebarTitleType')) {
+        store.set('sidebarTitleType', 'text');
+    }
+    if (!store.has('sidebarCustomText')) {
+        store.set('sidebarCustomText', 'Sidebar');
     }
 }
 

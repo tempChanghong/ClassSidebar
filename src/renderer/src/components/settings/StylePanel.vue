@@ -58,6 +58,31 @@
         </div>
       </SettingsRow>
     </SettingsSection>
+
+    <!-- Title Content -->
+    <SettingsSection title="标题栏内容" description="自定义侧边栏主页左上角的显示内容">
+      <SettingsRow label="标题显示类型" description="选择显示固定文本或者动态时间日期">
+        <div class="w-40">
+           <BaseSelect
+            v-model="titleType"
+            @change="updateTitle"
+            :options="titleOptions"
+            size="sm"
+          />
+        </div>
+      </SettingsRow>
+      <SettingsRow v-if="titleType === 'text'" label="自定义文本" description="输入你想要显示的固定文本">
+        <div class="w-40">
+          <BaseInput
+            type="text"
+            v-model="customText"
+            @change="updateTitle"
+            placeholder="例如: Sidebar"
+            size="sm"
+          />
+        </div>
+      </SettingsRow>
+    </SettingsSection>
   </div>
 </template>
 
@@ -76,10 +101,19 @@ const opacity = ref(0.95)
 const animationSpeed = ref(1)
 const width = ref(400)
 const heightMode = ref('auto')
+const titleType = ref('text')
+const customText = ref('Sidebar')
 
 const heightOptions = [
   { label: '自适应内容', value: 'auto' },
   { label: '填满屏幕', value: 'max' }
+]
+
+const titleOptions = [
+  { label: '自定义文本', value: 'text' },
+  { label: '当前日期', value: 'date' },
+  { label: '当前时间', value: 'time' },
+  { label: '日期和时间', value: 'datetime' }
 ]
 
 onMounted(() => {
@@ -90,16 +124,24 @@ onMounted(() => {
     // Hacky interpretation of height: if large enough, assume max
     heightMode.value = config.value.transforms.height > 80 ? 'max' : 'auto'
   }
+  if (config.value) {
+    titleType.value = config.value.sidebarTitleType ?? 'text'
+    customText.value = config.value.sidebarCustomText ?? 'Sidebar'
+  }
 })
 
 // Sync config changes from external to local state
 watch(
-  () => config.value?.transforms,
+  () => config.value,
   (newVal) => {
+    if (newVal?.transforms) {
+      opacity.value = newVal.transforms.opacity
+      animationSpeed.value = newVal.transforms.animation_speed
+      width.value = newVal.transforms.width
+    }
     if (newVal) {
-      opacity.value = newVal.opacity
-      animationSpeed.value = newVal.animation_speed
-      width.value = newVal.width
+      titleType.value = newVal.sidebarTitleType ?? 'text'
+      customText.value = newVal.sidebarCustomText ?? 'Sidebar'
     }
   },
   { deep: true }
@@ -129,6 +171,13 @@ const updateHeight = async () => {
   if (!config.value) return
   const hValue = heightMode.value === 'max' ? 100 : 70 // just some logical values your app had
   config.value.transforms.height = hValue
+  await saveConfig(config.value)
+}
+
+const updateTitle = async () => {
+  if (!config.value) return
+  config.value.sidebarTitleType = titleType.value as any
+  config.value.sidebarCustomText = customText.value
   await saveConfig(config.value)
 }
 </script>
