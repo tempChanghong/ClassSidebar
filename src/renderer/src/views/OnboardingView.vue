@@ -7,11 +7,9 @@
     
     <!-- 顶部占位/Logo 区 (这里可以设计为您项目的真实风格) -->
     <div class="pt-10 pb-4 flex flex-col items-center justify-center">
-      <!-- 一个充满现代感的小徽标。可替换为真实图片 -->
-      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 shadow-xl flex items-center justify-center -webkit-app-region: drag mb-4">
-        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-        </svg>
+      <!-- 真实的应用图标 -->
+      <div class="w-16 h-16 rounded-2xl bg-white/70 shadow-xl flex items-center justify-center -webkit-app-region: drag mb-4 border border-white/60">
+        <img src="../assets/icons/icons.ico" alt="ClassSidebar Logo" class="w-10 h-10 object-contain drop-shadow-sm" />
       </div>
     </div>
 
