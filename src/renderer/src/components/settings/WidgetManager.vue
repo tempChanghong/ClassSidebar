@@ -20,7 +20,16 @@
         <div
           v-for="(widget, index) in store.config?.widgets"
           :key="widget.id || index"
-          class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group"
+          draggable="true"
+          @dragstart="onDragStart($event, index)"
+          @dragover.prevent="onDragOver($event, index)"
+          @drop="onDrop($event, index)"
+          @dragend="onDragEnd"
+          class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl shadow-sm transition-all duration-200 group cursor-grab active:cursor-grabbing"
+          :class="[
+            draggingIndex === index ? 'opacity-40 scale-[0.98] border-blue-400 z-10' : 'hover:shadow-md',
+            dragOverIndex === index ? 'ring-2 ring-blue-500 shadow-lg scale-[1.02] z-20' : ''
+          ]"
         >
           <div class="flex items-center gap-4">
             <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 overflow-hidden">
@@ -391,6 +400,37 @@ import {
 } from 'lucide-vue-next'
 
 const store = useSidebarStore()
+
+// --- Drag & Drop State ---
+const draggingIndex = ref<number | null>(null)
+const dragOverIndex = ref<number | null>(null)
+
+const onDragStart = (e: DragEvent, index: number) => {
+  draggingIndex.value = index
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.dropEffect = 'move'
+  }
+}
+
+const onDragOver = (_e: DragEvent, index: number) => {
+  if (draggingIndex.value !== null && draggingIndex.value !== index) {
+    dragOverIndex.value = index
+  }
+}
+
+const onDrop = (_e: DragEvent, index: number) => {
+  if (draggingIndex.value !== null && draggingIndex.value !== index) {
+    store.reorderWidget(draggingIndex.value, index)
+  }
+  dragOverIndex.value = null
+  draggingIndex.value = null
+}
+
+const onDragEnd = () => {
+  dragOverIndex.value = null
+  draggingIndex.value = null
+}
 
 // --- State ---
 const activeTab = ref('current')

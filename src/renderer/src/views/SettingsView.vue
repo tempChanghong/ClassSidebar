@@ -20,43 +20,12 @@
     </template>
 
     <!-- Tab: General -->
-    <div v-if="currentTab === 'general'" class="space-y-6">
-      <SettingsSection title="系统集成">
-        <SettingsRow label="开机自启" description="随系统启动自动运行 ClassSidebar">
-          <BaseSwitch v-model="autoLaunch" @update:model-value="toggleAutoLaunch" />
-        </SettingsRow>
-      </SettingsSection>
+    <GeneralPanel v-if="currentTab === 'general'" />
 
-      <SettingsSection title="调试工具">
-        <SettingsRow label="测试工具路径" description="指定用于测试启动功能的外部程序路径">
-          <div class="flex items-center gap-2 w-64">
-            <BaseInput v-model="testPath" placeholder="e.g. notepad.exe" />
-            <BaseButton
-              @click="testLaunch"
-              variant="ghost"
-              title="测试启动"
-              class="p-2!"
-            >
-              <Play class="w-4 h-4" />
-            </BaseButton>
-          </div>
-        </SettingsRow>
-        <SettingsRow label="重置应用" description="清除所有本地配置并恢复默认状态">
-          <BaseButton
-            @click="resetConfig"
-            variant="danger"
-            size="sm"
-          >
-            重置所有设置
-          </BaseButton>
-        </SettingsRow>
-      </SettingsSection>
-      <SettingsSection title="日志设置">
-        <LogSettings />
-      </SettingsSection>
-    </div>
+    <!-- Tab: Appearance -->
+    <StylePanel v-else-if="currentTab === 'appearance'" />
 
-    <!-- Tab: Appearance (Widgets) -->
+    <!-- Tab: Widgets -->
     <div v-else-if="currentTab === 'widgets'" class="space-y-6">
 
       <!-- Visual Widget Manager -->
@@ -81,6 +50,9 @@
         </div>
       </SettingsSection>
     </div>
+
+    <!-- Tab: Integration -->
+    <IntegrationPanel v-else-if="currentTab === 'integration'" />
 
     <!-- Tab: About -->
     <div v-else-if="currentTab === 'about'" class="space-y-6">
@@ -112,22 +84,21 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import {
   Settings,
   LayoutGrid,
   Info,
-  Play,
   Save
 } from 'lucide-vue-next'
 import SettingsLayout from '../components/ui/SettingsLayout.vue'
 import SettingsSection from '../components/ui/SettingsSection.vue'
 import SettingsRow from '../components/ui/SettingsRow.vue'
-import BaseSwitch from '../components/ui/BaseSwitch.vue'
-import BaseInput from '../components/ui/BaseInput.vue'
 import BaseButton from '../components/ui/BaseButton.vue'
 import WidgetManager from '../components/settings/WidgetManager.vue'
-import LogSettings from '../components/settings/LogSettings.vue'
+import GeneralPanel from '../components/settings/GeneralPanel.vue'
+import StylePanel from '../components/settings/StylePanel.vue'
+import IntegrationPanel from '../components/settings/IntegrationPanel.vue'
 import { useConfig } from '../composables/useConfig'
 import appIcon from '../assets/icons.png' // 恢复图片导入
 
@@ -135,23 +106,22 @@ import appIcon from '../assets/icons.png' // 恢复图片导入
 const { config, saveConfig } = useConfig()
 const currentTab = ref('general')
 const appVersion = ref('')
-const autoLaunch = ref(false)
-const testPath = ref('notepad.exe')
 const configJson = ref('')
 const jsonError = ref('')
 
 // --- Tabs Definition ---
+import { Paintbrush, Box } from 'lucide-vue-next'
 const tabs = [
   { id: 'general', label: '通用', icon: Settings },
-  { id: 'widgets', label: '组件与外观', icon: LayoutGrid },
+  { id: 'appearance', label: '外观增强', icon: Paintbrush },
+  { id: 'widgets', label: '组件管理', icon: LayoutGrid },
+  { id: 'integration', label: '高阶扩展', icon: Box },
   { id: 'about', label: '关于', icon: Info }
 ]
 
 // --- Lifecycle ---
 onMounted(async () => {
   appVersion.value = await window.electronAPI.getAppVersion()
-  const settings = await window.electronAPI.getLoginItemSettings()
-  autoLaunch.value = settings.openAtLogin
 
   if (config.value) {
     configJson.value = JSON.stringify(config.value, null, 2)
@@ -182,48 +152,6 @@ watch(configJson, (newVal) => {
 })
 
 // --- Actions ---
-const toggleAutoLaunch = async (val: boolean) => {
-  await window.electronAPI.setLoginItemSettings({
-    openAtLogin: val,
-    path: process.execPath
-  })
-  ElMessage.success(`开机自启已${val ? '开启' : '关闭'}`)
-}
-
-const testLaunch = () => {
-  if (!testPath.value) return
-  window.electronAPI.launchApp(testPath.value, [])
-  ElMessage.info(`尝试启动: ${testPath.value}`)
-}
-
-const resetConfig = () => {
-  ElMessageBox.confirm(
-    '此操作将清除所有自定义设置和组件，恢复到初始状态。确定要继续吗？',
-    '重置确认',
-    {
-      confirmButtonText: '确认重置',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  )
-    .then(async () => {
-      try {
-        await window.electronAPI.resetConfig()
-        ElMessage.success('应用已重置，正在重启...')
-        // 延迟一下让用户看到提示
-        setTimeout(() => {
-          window.electronAPI.relaunchApp()
-        }, 1500)
-      } catch (e) {
-        console.error('Reset failed:', e)
-        ElMessage.error('重置失败')
-      }
-    })
-    .catch(() => {
-      // cancel
-    })
-}
-
 const saveJsonConfig = async () => {
   if (jsonError.value) return
   try {

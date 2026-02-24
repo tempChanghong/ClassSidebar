@@ -4,7 +4,7 @@
     <label
       v-if="label"
       :for="selectId"
-      class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+      class="block text-sm font-semibold mb-1 text-slate-700"
     >
       {{ label }}
     </label>
@@ -14,7 +14,7 @@
         :id="selectId"
         :value="modelValue"
         @change="onChange"
-        class="w-full transition-colors border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800 appearance-none bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-blue-500 dark:focus:ring-blue-400"
+        class="w-full transition-all duration-300 border rounded-lg focus:outline-none focus:ring-4 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 appearance-none bg-white hover:bg-slate-50 border-slate-200 text-slate-800 focus:ring-blue-500/20 shadow-sm"
         :class="sizeClasses[size]"
         v-bind="$attrs"
       >

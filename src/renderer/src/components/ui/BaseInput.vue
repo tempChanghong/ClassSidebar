@@ -4,7 +4,7 @@
     <label
       v-if="label"
       :for="inputId"
-      class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300"
+      class="block text-sm font-semibold mb-1 text-slate-700"
     >
       {{ label }}
     </label>
@@ -15,12 +15,12 @@
         :id="inputId"
         :value="modelValue"
         @input="onInput"
-        class="w-full transition-colors border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800"
+        class="w-full transition-all duration-300 border rounded-lg focus:outline-none focus:ring-4 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 shadow-sm placeholder-slate-400"
         :class="[
           sizeClasses[size],
           error 
-            ? 'border-red-300 text-red-900 focus:ring-red-500 dark:border-red-600 dark:text-red-100 dark:focus:ring-red-500' 
-            : 'border-gray-300 text-gray-900 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-400'
+            ? 'border-red-300 text-red-900 focus:ring-red-500/20' 
+            : 'border-slate-200 text-slate-800 focus:ring-blue-500/20 hover:border-slate-300'
         ]"
         v-bind="$attrs"
       />
