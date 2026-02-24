@@ -126,6 +126,10 @@ declare global {
       openDevTools: (target: 'main' | 'settings') => void
       quitApp: () => void
       clearCache: () => Promise<{ success: boolean; error?: string }>
+      debugShowOnboarding: () => void
+
+      // ── Onboarding 引导页 ─────────────────────────────
+      completeOnboarding: (initialSettings: any) => void
     }
   }
 }

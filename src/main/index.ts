@@ -15,6 +15,7 @@ import {
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { sidebarWindow } from './windows/SidebarWindow'
 import { settingsWindow } from './windows/SettingsWindow'
+import { onboardingWindow } from './windows/OnboardingWindow'
 import store, { AppSchema, WidgetConfig, LauncherWidgetConfig } from './store'
 import * as utils from './utils'
 import { spawn } from 'child_process'
@@ -324,6 +325,41 @@ function registerIpc(): void {
             return { success: false, error: String(e) }
         }
     })
+
+    ipcMain.on('debug:show-onboarding', () => {
+        log.info('[IPC] 准备展示引导窗口... (Debug Triggered)');
+        if (!onboardingWindow.win) {
+            onboardingWindow.isCompleted = false; // Reset status for testing
+            onboardingWindow.create();
+        } else {
+            onboardingWindow.win.show();
+        }
+    })
+
+    // --- Onboarding 引导页 ---
+    ipcMain.on('onboarding-complete', (_: IpcMainEvent, initialSettings: any) => {
+        log.info(`[IPC] Received ONBOARDING_COMPLETE, Initial Settings: ${JSON.stringify(initialSettings)}`);
+        
+        // 保存初始设置（例如开机自启）
+        if (initialSettings && initialSettings.openAtLogin !== undefined) {
+            app.setLoginItemSettings({ openAtLogin: initialSettings.openAtLogin, path: process.execPath });
+            log.info(`[IPC] Set auto-start to ${initialSettings.openAtLogin}`);
+        }
+
+        // 保存完成状态
+        store.set('isFirstLaunch', false);
+        log.info('[IPC] isFirstLaunch set to false');
+
+        // 标记引导已正常完成，防止触发强退逻辑
+        onboardingWindow.isCompleted = true;
+        onboardingWindow.destroy();
+
+        // 立刻调用正常的初始化流程 (防重入)
+        if (!sidebarWindow.win) {
+            sidebarWindow.create();
+            trayManager.init();
+        }
+    })
     // ----------------------
 
     // 显示右键菜单
@@ -623,8 +659,16 @@ if (!gotTheLock) {
             }
         })
         
-        sidebarWindow.create()
-        trayManager.init() // 初始化托盘
+        // --- 启动逻辑分支 ---
+        const isFirstLaunch = store.get('isFirstLaunch');
+        if (isFirstLaunch && app.isPackaged) {
+            log.info('[Main] First launch detected in packaged app. Starting Onboarding...');
+            onboardingWindow.create();
+        } else {
+            log.info('[Main] Normal startup sequence.');
+            sidebarWindow.create()
+            trayManager.init() // 初始化托盘
+        }
 
         // --- 注册全局快捷键 ---
         const SHORTCUT = 'CommandOrControl+Shift+S'

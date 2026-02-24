@@ -19,6 +19,10 @@
           <FolderOpen class="w-4 h-4 mr-2" />
           打开配置文件夹
         </BaseButton>
+        <BaseButton @click="debugShowOnboarding" variant="secondary" class="w-full justify-start text-left bg-indigo-50 hover:bg-indigo-100 text-indigo-700">
+          <Rocket class="w-4 h-4 mr-2" />
+          手动测试引导页面 (Onboarding)
+        </BaseButton>
         <BaseButton @click="clearAppCache" variant="secondary" class="w-full justify-start text-left bg-slate-100 hover:bg-slate-200 text-slate-700">
           <Trash2 class="w-4 h-4 mr-2" />
           清除应用缓存
@@ -76,7 +80,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Play, FolderOpen, Terminal, RefreshCw, Trash2, Power } from 'lucide-vue-next'
+import { Play, FolderOpen, Terminal, RefreshCw, Trash2, Power, Rocket } from 'lucide-vue-next'
 import SettingsSection from '../ui/SettingsSection.vue'
 import SettingsRow from '../ui/SettingsRow.vue'
 import BaseSwitch from '../ui/BaseSwitch.vue'
@@ -113,6 +117,11 @@ const toggleAutoLaunch = async (val: boolean) => {
   } else {
     ElMessage.success(`开机自启已${val ? '开启' : '关闭'}`)
   }
+}
+
+const debugShowOnboarding = () => {
+  window.electronAPI.debugShowOnboarding()
+  ElMessage.info('已发送唤起引导页指令。请查看主进程控制台日志。')
 }
 
 const openConfigFolder = async () => {

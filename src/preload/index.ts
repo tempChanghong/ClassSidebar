@@ -135,6 +135,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   clearCache: (): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IPC_CHANNELS.DEBUG_CLEAR_CACHE),
+
+  debugShowOnboarding: (): void =>
+    ipcRenderer.send(IPC_CHANNELS.DEBUG_SHOW_ONBOARDING),
+
+  // ── Onboarding 引导页 ─────────────────────────────
+  completeOnboarding: (initialSettings: any): void =>
+    ipcRenderer.send(IPC_CHANNELS.ONBOARDING_COMPLETE, initialSettings),
 })
 
 // ─────────────────────────────────────────────────────────────────

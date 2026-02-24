@@ -81,6 +81,7 @@ export interface AppSchema {
     logLevel: string;
     sidebarTitleType: 'text' | 'date' | 'time' | 'datetime';
     sidebarCustomText: string;
+    isFirstLaunch: boolean;
 }
 
 // --- Default Configuration ---
@@ -149,6 +150,10 @@ const schema: Schema<AppSchema> = {
     sidebarCustomText: {
         type: 'string',
         default: 'Sidebar'
+    },
+    isFirstLaunch: {
+        type: 'boolean',
+        default: true
     }
 };
 
@@ -192,6 +197,11 @@ function initDefaults() {
     }
     if (!store.has('sidebarCustomText')) {
         store.set('sidebarCustomText', 'Sidebar');
+    }
+
+    // 4. Check and set isFirstLaunch
+    if (!store.has('isFirstLaunch')) {
+        store.set('isFirstLaunch', true);
     }
 }
 

@@ -65,6 +65,10 @@ export const IPC_CHANNELS = {
   DEBUG_OPEN_DEVTOOLS: 'debug:open-devtools',
   DEBUG_QUIT_APP: 'debug:quit-app',
   DEBUG_CLEAR_CACHE: 'debug:clear-cache',
+  DEBUG_SHOW_ONBOARDING: 'debug:show-onboarding',
+
+  // ── Onboarding 引导页 ─────────────────────────────
+  ONBOARDING_COMPLETE: 'onboarding-complete',
 } as const
 
 /** 所有频道名称的联合类型 */
