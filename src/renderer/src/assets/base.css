@@ -1,34 +1,82 @@
-/* ExamAware2 Design System Extraction */
+/* ================================================================
+   ExamAware2 / ClassSidebar Design System — Base Styles
+   来源：
+     - cankao/css/variables.css   → CSS 变量令牌
+     - cankao/css/base.css        → 字体、重置
+     - cankao/css/sidebar.css     → 毛玻璃组件模式
+     - cankao/css/widgets/*.css   → 小组件通用模式
+   ================================================================ */
+
+/* ──────────────────────────────────────────────────────────────
+   1. CSS 自定义属性（设计令牌）
+   完整保留 variables.css 中的所有变量，供原生 CSS 继续引用
+   ────────────────────────────────────────────────────────────── */
 :root {
-  /* Colors - Light Mode Default */
+  /* 动画时间（来自 variables.css） */
+  --sidebar-duration: 0.5s;
+  --content-duration: 0.3s;
+  --sidebar-scale: 1;
+
+  /* 半透明背景（来自 variables.css） */
+  --bg-transparent: rgba(255, 255, 255, 0.15);
+  --bg-transparent-hover: rgba(255, 255, 255, 0.25);
+  --bg-transparent-dark: rgba(0, 0, 0, 0.1);
+
+  /* 小组件变量（来自 variables.css） */
+  --widget-bg: var(--bg-transparent);
+  --widget-bg-hover: var(--bg-transparent-hover);
+  --widget-border-radius: 12px;
+  --widget-border: 1px solid rgba(255, 255, 255, 0.2);
+  --widget-shadow: none;
+
+  /* 主题色（来自 variables.css） */
+  --primary-color: #3b82f6;
+  --text-main: #1f2937;
+  --text-muted: #4b5563;
+  --slider-bg: var(--bg-transparent-dark);
+
+  /* 设计系统（原 base.css 变量，保持兼容） */
   --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc; /* Slate-50 */
-  --bg-tertiary: #f1f5f9;  /* Slate-100 */
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
 
-  --text-primary: #0f172a; /* Slate-900 */
-  --text-secondary: #64748b; /* Slate-500 */
-  --text-tertiary: #94a3b8; /* Slate-400 */
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
 
-  --border-subtle: #e2e8f0; /* Slate-200 */
-  --border-focus: #3b82f6;  /* Blue-500 */
+  --border-subtle: #e2e8f0;
+  --border-focus: #3b82f6;
 
-  --brand-primary: #3b82f6; /* Blue-500 */
-  --brand-hover: #2563eb;   /* Blue-600 */
+  --brand-primary: #3b82f6;
+  --brand-hover: #2563eb;
 
   --danger: #ef4444;
   --success: #22c55e;
 }
 
-/* 基础排版优化 */
+/* ──────────────────────────────────────────────────────────────
+   2. 基础排版与重置
+   ────────────────────────────────────────────────────────────── */
 body {
   @apply text-slate-900 bg-slate-50 antialiased;
+  font-family:
+    "Microsoft YaHei",
+    -apple-system,
+    "BlinkMacSystemFont",
+    "Segoe UI",
+    sans-serif;
+  /* OpenType 特性：更细腻的字形渲染（来自原 base.css） */
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  /* 桌面端禁用触摸长按弹窗（来自 cankao/css/base.css） */
+  -webkit-touch-callout: none;
 }
 
-/* 滚动条美化 */
+/* ──────────────────────────────────────────────────────────────
+   3. 滚动条美化（Webkit，保持原有）
+   ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -40,4 +88,152 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-slate-400;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   4. @layer utilities — 无法用 Tailwind 类名完美替代的工具类
+   ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* ── 毛玻璃效果 ──────────────────────────────────────────── */
+  /*
+   * .glass — 标准半透明毛玻璃（launcher-group, toolbar-buttons 同款）
+   * Tailwind 的 backdrop-blur-[10px] 可处理模糊，但 border 和
+   * background 的精确 rgba 值无法通过单一类名组合，故封装为工具类。
+   */
+  .glass {
+    background-color: var(--bg-transparent); /* rgba(255,255,255,0.15) */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: var(--widget-border); /* 1px solid rgba(255,255,255,0.2) */
+    border-radius: var(--widget-border-radius); /* 12px */
+  }
+
+  .glass:hover {
+    background-color: var(--bg-transparent-hover); /* rgba(255,255,255,0.25) */
+  }
+
+  /* 强毛玻璃：截图遮罩、Toast 等需要更高不透明度的场景 */
+  .glass-heavy {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* 侧边栏收起时的深色毛玻璃条 */
+  .glass-sidebar {
+    background: linear-gradient(
+      135deg,
+      rgba(154, 164, 180, 0.8),
+      rgba(136, 142, 152, 0.8)
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* ── 弹簧过渡（侧边栏展开用） ────────────────────────────── */
+  /*
+   * Tailwind 的 duration / ease 组合无法同时覆盖多个属性采用不同
+   * cubic-bezier，故用原生 transition 封装。
+   * 对应 sidebar.css 中 #sidebar 多属性 spring transition。
+   */
+  .transition-spring {
+    transition-property:
+      width, height, border-radius, margin, background-color, opacity;
+    transition-duration: var(--sidebar-duration);
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* 内容区标准过渡（content-duration: 0.3s ease） */
+  .transition-content {
+    transition-property: opacity, transform;
+    transition-duration: var(--content-duration);
+    transition-timing-function: ease;
+  }
+
+  /* ── 点击按压微动画（active 态缩放） ────────────────────── */
+  /*
+   * .press-active — 为 :active 自动添加 scale(0.98)
+   * 对应 launcher-item:active / toolbar-button:active 的 scale 行为。
+   * 因 Tailwind 的 active:scale-98 需要 JIT 且值固定，
+   * 这里提供更语义化的封装。
+   */
+  .press-active {
+    transition:
+      transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.2s ease;
+  }
+  .press-active:active {
+    transform: scale(0.97);
+  }
+
+  /* 较强的按压（overlay-btn-small:active → scale 0.95） */
+  .press-active-strong:active {
+    transform: scale(0.95);
+  }
+
+  /* ── Hover 图标放大 ──────────────────────────────────────── */
+  /*
+   * .icon-hover — 对应 overlay-btn-small:hover i { transform: scale(1.1) }
+   * 配合 group/peer 使用，或直接给 <i>/<svg> 上 class
+   */
+  .icon-hover {
+    transition: transform 0.2s ease;
+  }
+  .icon-hover:hover {
+    transform: scale(1.1);
+  }
+
+  /* ── 组件分割线（网格内） ────────────────────────────────── */
+  /*
+   * .divider-inner — 用于网格布局内各项之间的细分割线
+   * 对应 launcher.css / toolbar.css 中的 ::before / ::after 分割线
+   * rgba(0,0,0,0.06) 无法通过 Tailwind 颜色类精确表达
+   */
+  .divider-x {
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .divider-y {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  /* ── Widget 通用卡片 ─────────────────────────────────────── */
+  /*
+   * .widget-card — 集成了毛玻璃 + 圆角 + 边框的完整小组件底座
+   * 替代各 widget CSS 文件中重复的 backdrop-filter + border 组合
+   */
+  .widget-card {
+    background-color: var(--widget-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: var(--widget-border);
+    border-radius: var(--widget-border-radius);
+    transition: background-color 0.2s ease;
+  }
+  .widget-card:hover {
+    background-color: var(--widget-bg-hover);
+  }
+
+  /* ── 伪亚克力噪点纹理层 ───────────────────────────────────────
+   * .acrylic-noise — 轻微 SVG fractalNoise 叠加层
+   *
+   * 实现原理：
+   *   - background-image 使用内联 SVG <feTurbulence> 生成随机噪点
+   *   - opacity: 0.04 保证肉眼几乎察觉不到但材质感明显提升
+   *   - mix-blend-mode: overlay 以光学混合方式叠加，不影响文字可读性
+   *   - pointer-events: none 确保噪点层完全穿透，不拦截任何鼠标事件
+   *
+   * 使用方式：在需要噪点的容器内插入
+   *   <div class="acrylic-noise absolute inset-0 rounded-inherit pointer-events-none" />
+   * 或通过 ::after 伪元素挂载（见 SidebarView.vue）
+   * ──────────────────────────────────────────────────────────── */
+  .acrylic-noise {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.80' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    border-radius: inherit;
+  }
 }

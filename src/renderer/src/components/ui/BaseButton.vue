@@ -1,10 +1,15 @@
 <template>
   <button
-    class="inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+    class="inline-flex items-center justify-center font-medium
+           transition-colors
+           focus:outline-none focus:ring-2 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed
+           press-active"
     :class="[
       variantClasses[variant],
       sizeClasses[size],
       block ? 'w-full' : '',
+      size === 'icon' ? 'icon-btn-hover' : '',
     ]"
     :disabled="disabled || loading"
     v-bind="$attrs"
@@ -84,3 +89,24 @@ const variantClasses = {
     'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200 focus:ring-gray-500 dark:text-gray-300 dark:hover:bg-gray-800 dark:active:bg-gray-700 dark:focus:ring-gray-400',
 };
 </script>
+
+<style scoped>
+/*
+  icon-btn-hover: 绯图标按鈕 hover 时，SVG 子元素轻微放大弹跳。
+  对所有 variant 都有效，不影响文字按鈕（因为只有 size='icon'
+  才会被添加此类）。
+
+  注意：斑马线选择器作用于 slot 插入的 SVG （通常是 lucide-vue-next 组件）。
+  :deep() 确保能穿透组件 Shadow DOM 边界。
+*/
+.icon-btn-hover :deep(svg) {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.icon-btn-hover:hover :deep(svg) {
+  transform: scale(1.15);
+}
+/* 结合 press-active：按下时稍微缩回（全局定义在 base.css @layer utilities 中） */
+.icon-btn-hover:active :deep(svg) {
+  transform: scale(0.90);
+}
+</style>

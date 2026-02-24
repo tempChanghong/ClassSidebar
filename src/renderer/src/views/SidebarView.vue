@@ -4,36 +4,128 @@
     @mousedown="onWrapperMouseDown"
     @touchstart="onWrapperTouchStart"
   >
+    <!--
+      sidebar-container: 侧边栏 **核心容器**
+      ─────────────────────────────────────────────────────────────
+      · sidebarStyle 动态控制：width / height / borderRadius /
+        marginLeft / backgroundColor（半透明白色，随展开进度变化）
+        ↑ 这些属性由 JS 动画驱动，class 要避免覆盖
+
+      · 伪亚克力分层架构（Fake Acrylic Stack）：
+        ┌─────────────────────────────────────────────────────┐
+        │  .sidebar-container                                 │
+        │   backdrop-blur-2xl  → CSS 毛玻璃核心（blur 24px）  │
+        │   backdrop-saturate-150 → 背景色彩饱和度增强         │
+        │   backgroundColor(JS) → 半透明白色底版 0.4~0.65     │
+        │                                                     │
+        │   ┌─── .acrylic-noise (absolute, inset-0) ─────┐   │
+        │   │  SVG fractalNoise，opacity 0.04             │   │
+        │   │  在 backdrop-filter 之上独立渲染，不被模糊   │   │
+        │   └────────────────────────────────────────────┘   │
+        │                                                     │
+        │   ┌─── .widgets-container ─────────────────────┐   │
+        │   │  内容层，z-index 自然叠于噪点层之上          │   │
+        │   └────────────────────────────────────────────┘   │
+        └─────────────────────────────────────────────────────┘
+        - overflow-hidden → 圆角裁切所有子层
+        - will-change     → GPU 加速展开动画
+    -->
     <div
-      class="sidebar-container"
+      class="sidebar-container
+             backdrop-blur-2xl
+             backdrop-saturate-150
+             border border-white/20
+             overflow-hidden
+             will-change-[width,height,border-radius]"
       ref="sidebarRef"
       :style="sidebarStyle"
     >
-      <!-- 拖拽手柄 -->
+      <!-- ── 伪亚克力噪点层 ──────────────────────────────────────
+           在 backdrop-filter 之后、在内容之前独立渲染。
+           absolute + inset-0 保证完全覆盖容器，pointer-events-none
+           确保不拦截任何鼠标/触摸事件。
+           border-radius: inherit 配合容器动态圆角同步变化。
+      ──────────────────────────────────────────────────────────── -->
+      <div class="acrylic-noise absolute inset-0" aria-hidden="true" />
+      <!-- ── 拖拽手柄 ─────────────────────────────────────────── -->
+      <!--
+        drag-handle：保持原有事件绑定。
+        新增 group 类以便 GripHorizontal 响应 hover 状态变化。
+      -->
       <div
-        class="drag-handle h-3 w-full flex items-center justify-center cursor-ns-resize hover:bg-black/5 transition-colors"
+        class="drag-handle group
+               h-3 w-full
+               flex items-center justify-center
+               cursor-ns-resize
+               hover:bg-black/5
+               transition-colors duration-200"
         @mousedown="onDragHandleMouseDown"
         @touchstart="onDragHandleTouchStart"
       >
-        <GripHorizontal class="w-4 h-4 text-slate-400" />
+        <!--
+          图标在 group-hover 时增强可见度，
+          给用户更清晰的可拖拽提示
+        -->
+        <GripHorizontal
+          class="w-4 h-4
+                 text-slate-300 group-hover:text-slate-400
+                 transition-colors duration-200"
+        />
       </div>
 
-      <div class="widgets-container pt-1">
+      <!-- ── 内容区（Widget 列表 + 标题栏） ─────────────────────
+           sidebar-content-area 在 body.expanded 状态下可见。
+           animate-slide-up：侧边栏展开时子内容以 translateY(10px)→0
+           + fade-in 的 0.2s 动画出现，对应 cankao/common.css 的
+           widget-list 展开效果。
+           transition-content：后续内部面板切换时的过渡底座。
+      ──────────────────────────────────────────────────────────── -->
+      <div
+        class="widgets-container
+               pt-1 px-0
+               animate-slide-up
+               transition-content"
+      >
+        <!-- 标题栏 -->
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold text-slate-800">Sidebar</h2>
-            <button class="settings-button" @click="openSettings" title="设置">
-              <Settings class="w-4 h-4" />
-            </button>
+          <!--
+            标题文字：原为 text-slate-800，侧边栏背景偏灰，
+            text-txt-main（#1f2937）与设计系统保持一致。
+            tracking-tight 让字形更紧凑，贴近原生系统风格。
+          -->
+          <h2 class="text-xl font-bold tracking-tight text-txt-main select-none">
+            Sidebar
+          </h2>
+
+          <!--
+            设置按钮：保持 .settings-button scoped 样式不变，
+            仅追加 press-active 工具类（base.css @layer utilities），
+            实现 :active scale(0.97) 按压微反馈。
+          -->
+          <button
+            class="settings-button press-active"
+            @click="openSettings"
+            title="设置"
+          >
+            <Settings class="w-4 h-4" />
+          </button>
         </div>
 
+        <!-- Widget 宿主区域 -->
         <div id="widget-container">
-           <WidgetHost
-             v-if="store.config && store.config.widgets"
-             :widgets="store.config.widgets"
-           />
-           <div v-else class="widget-list">
-              <p>正在加载配置...</p>
-           </div>
+          <WidgetHost
+            v-if="store.config && store.config.widgets"
+            :widgets="store.config.widgets"
+          />
+          <!--
+            加载占位：保留原有 widget-list 类以承接 grid 布局，
+            追加淡入动画。
+          -->
+          <div v-else class="widget-list animate-fade-in">
+            <p class="text-sm text-txt-muted col-span-full text-center py-4">
+              正在加载配置...
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -48,10 +140,9 @@ import { Settings, GripHorizontal } from 'lucide-vue-next'
 import { useSidebarInteraction } from '../composables/useSidebarInteraction'
 
 const store = useSidebarStore()
-// const wrapperRef = ref<HTMLElement | null>(null) // Removed unused ref
 const sidebarRef = ref<HTMLElement | null>(null)
 
-// 使用 Composable 提取交互逻辑
+// 使用 Composable 提取交互逻辑（保持不变）
 const {
     sidebarStyle,
     onWrapperMouseDown,
@@ -72,7 +163,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 保留原有样式，Tailwind 类名已在模板中直接使用 */
+/* ── 设置按钮（保持原有样式不变） ────────────────────────────── */
 .settings-button {
     width: 28px;
     height: 28px;
@@ -91,22 +182,60 @@ onMounted(() => {
     color: #3b82f6;
 }
 
-/* 全局网格布局样式 - 覆盖 WidgetHost 中的样式 */
+/* ── Widget 网格布局（保持原有）────────────────────────────────
+   :deep 深度选择器，覆盖 WidgetHost 内部的 grid 布局
+────────────────────────────────────────────────────────────── */
 :deep(.widget-list) {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 强制3列 */
-  gap: 0.5rem; /* 调整间距 */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
   width: 100%;
 }
 
-/* 让某些组件跨越所有列 (如音量滑块、文件列表等) */
 :deep(.widget-wrapper) {
-  /* 默认情况下，每个 widget-wrapper 也是一个 grid item */
-  /* 如果需要特定组件占满一行，可以在这里或组件内部指定 */
+  /* 每个 widget-wrapper 作为 grid item 存在，特殊组件可在此扩展 */
 }
 
-/* 特殊处理：如果组件本身需要占满一行 */
 :deep(.col-span-full) {
   grid-column: 1 / -1;
+}
+
+/* ── 侧边栏内容区进场动画增强 ────────────────────────────────
+   body.expanded 时 .widgets-container 重播 animate-slide-up。
+   CSS 实现：非 expanded 状态隐藏 + 取消动画，
+   expanded 状态重启动画（通过取消再重赋 animation-name 实现）。
+   原 JS 控制的 opacity 通过 sidebarStyle 中 currentOpacity 驱动，
+   这里的 CSS 仅在内容区提供额外的位移入场效果。
+────────────────────────────────────────────────────────────── */
+.widgets-container {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity var(--content-duration) ease,
+              transform var(--content-duration) ease;
+}
+
+/* body.expanded 由 useSidebarInteraction.expand() 添加 */
+:global(body.expanded) .widgets-container {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* ── 伪亚克力容器强化 ────────────────────────────────────────
+   backdrop-blur-2xl / backdrop-saturate-150 由 Tailwind 注入，
+   此处补充：
+   1. -webkit-backdrop-filter 确保 Webkit/Electron 下兼容（与 blur-2xl 对齐到 24px）
+   2. 顶部内阴影高光 → 模拟玻璃顶面折射，是亚克力质感的关键
+   3. 强化外影 → 让侧边栏明显浮于桌面之上
+──────────────────────────────────────────────────────────── */
+.sidebar-container {
+  /* webkit 兼容：必须与 backdrop-blur-2xl(24px) 数值一致 */
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  /* 物理玻璃边缘：顶部高光内阴影 + 悬浮阴影 */
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.10);
 }
 </style>

@@ -142,9 +142,15 @@ export function useSidebarInteraction(
     const p = progress.value
     const currentRadius = 4 + 12 * p
     const currentMargin = 6 + 6 * p
+    // ── 伪亚克力底色透明度设计 ────────────────────────────────────
+    // CSS backdrop-blur-2xl 负责模糊，JS 只需提供「有底色但半透明」的白层：
+    //   收起态 (p=0): opacity = 0.40 → 侧边栏小条有足够区分度
+    //   展开态 (p=1): opacity = baseOpacity(0.65) → 模糊背景透出，内容可读
+    // gray 保持灰度渐变：收起时偏灰（156,156,156），展开时趋白（255,255,255）
+    // 配合 backdrop-saturate-150，整体感知颜色更鲜艳、材质感更强
     const gray = Math.floor(156 + (255 - 156) * p)
-    const baseOpacity = store.config?.transforms?.opacity ?? 0.95
-    const currentOpacity = 0.8 + (baseOpacity - 0.8) * p
+    const baseOpacity = store.config?.transforms?.opacity ?? 0.65
+    const currentOpacity = 0.40 + (baseOpacity - 0.40) * p
 
     return {
       width: `${store.sidebarWidth}px`,

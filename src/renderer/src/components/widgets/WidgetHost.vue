@@ -5,7 +5,18 @@
 
         <!-- 每个 Widget 都被独立的错误边界包裹 -->
         <!-- 使用 widget.id 作为 key 重置错误边界状态 -->
-        <WidgetErrorBoundary :widget-id="widget.id" :widget-type="widget.type">
+        <!--
+          widget-entry: 触发交错入场动画。
+          --widget-index 驱动 animation-delay，每个 Widget 依次
+          以 40ms 间隔滑入，形成层叠瀑布感（最多 8 级，防止末尾
+          等待时间过长）。
+        -->
+        <WidgetErrorBoundary
+          :widget-id="widget.id"
+          :widget-type="widget.type"
+          class="widget-entry"
+          :style="{ '--widget-index': Math.min(index, 8) }"
+        >
 
           <!-- Launcher -->
           <LauncherWidget
@@ -174,10 +185,35 @@ const WidgetErrorBoundary = defineComponent({
 
 <style scoped>
 /*
-  Styles are now controlled by the parent (SidebarView) or global styles
-  to ensure the grid layout works correctly.
-
-  .grid-item classes will be styled to fit the 3-column layout.
-  .col-span-full classes will span all 3 columns.
+  Grid 布局由父级 SidebarView 的 :deep(.widget-list) 控制。
+  此处只管理 Widget 的入场交错动画。
 */
+
+/* ── 交错入场动画 ──────────────────────────────────────────────
+   每个 WidgetErrorBoundary 实例都带有 .widget-entry 类。
+   --widget-index 由模板中的 :style 绑定 (0~8)。
+   animation-delay 计算公式：index × 40ms，形成瀑布效。
+   animation-fill-mode: both 确保动画开始前元素已处于初始帧，
+   避免短暂的「闪烁出现」。
+────────────────────────────────────────────────────────────── */
+.widget-entry {
+  /* 这里不能直接用 Tailwind 的 animate-slide-up，
+     因为需要动态的 animation-delay。
+     直接写原生 animation 来配合 tailwind.config 中的
+     keyframes.slide-up 定义（from: opacity 0 / translateY 10px）。 */
+  animation: slide-up 0.25s ease both;
+  animation-delay: calc(var(--widget-index, 0) * 40ms);
+}
+
+/* Webkit 前缀（Electron 基于 Chromium，实际很少需要，但保留以防万一） */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

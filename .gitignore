@@ -35,3 +35,6 @@ Thumbs.db
 # Optional: package-lock.json and yarn.lock (it depends on preferences, but usually we keep them)
 # package-lock.json
 # yarn.lock
+
+# Ignore cankao reference folder
+cankao/
