@@ -102,6 +102,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   executeSystemTool: (toolName: string): void =>
     ipcRenderer.send(IPC_CHANNELS.SYSTEM_EXECUTE_TOOL, toolName),
 
+  takeScreenshot: (): void =>
+    ipcRenderer.send(IPC_CHANNELS.TAKE_SCREENSHOT),
+
   // ── 文件路径 (本地 API，非 IPC) ──────────────────
   getFilePath: (file: File): string => {
     if (webUtils && webUtils.getPathForFile) {

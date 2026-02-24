@@ -53,6 +53,7 @@ export const IPC_CHANNELS = {
   // ── 系统工具 ──────────────────────────────────────
   SYSTEM_CHECK_CAPABILITY: 'system:check-capability',
   SYSTEM_EXECUTE_TOOL: 'system:execute-tool',
+  TAKE_SCREENSHOT: 'take-screenshot',
 
   // ── 日志管理 ──────────────────────────────────────
   LOGS_OPEN_DIRECTORY: 'logs:open-directory',

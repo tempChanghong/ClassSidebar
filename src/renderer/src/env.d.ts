@@ -110,6 +110,7 @@ declare global {
       // ── 系统工具 ────────────────────────────────
       checkSystemCapability: (toolName: string) => Promise<boolean>
       executeSystemTool: (toolName: string) => void
+      takeScreenshot: () => void
 
       // ── 文件路径 (本地 API) ─────────────────────
       getFilePath: (file: File) => string

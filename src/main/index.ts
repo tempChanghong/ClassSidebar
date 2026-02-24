@@ -245,6 +245,18 @@ function registerIpc(): void {
         child.unref() // 允许主进程退出而不等待命令结束
     })
 
+    // 截图功能 (新增)
+    ipcMain.on('take-screenshot', () => {
+        log.info('[IPC] take-screenshot called')
+        try {
+            // 调用 Windows 原生截图工具 (Win + Shift + S 等效)
+            const child = spawn('explorer.exe', ['ms-screenclip:'], { detached: true, stdio: 'ignore' })
+            child.unref()
+        } catch (e) {
+            log.error('[IPC] Failed to take screenshot:', e)
+        }
+    })
+
     // 移动窗口 (新增)
     ipcMain.on('move-window', (_: IpcMainEvent, deltaY: number) => {
         sidebarWindow.move(deltaY)
